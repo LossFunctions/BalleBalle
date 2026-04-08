@@ -1,0 +1,12 @@
+<svg width="880" height="760" viewBox="0 0 880 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="880" height="760" fill="#F7F6F3"/>
+  <rect x="44" y="42" width="792" height="676" rx="34" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="676" cy="160" rx="110" ry="110" fill="#EEC60A" fill-opacity="0.2"/>
+  <path d="M242 180H638" stroke="#221E47" stroke-width="16" stroke-linecap="round"/>
+  <path d="M260 198C260 304 286 420 346 544H232C254 430 260 318 260 198Z" fill="#E1B1B7"/>
+  <path d="M620 198C620 304 594 420 534 544H648C626 430 620 318 620 198Z" fill="#0B7B4C"/>
+  <path d="M346 198C346 292 380 372 440 456C500 372 534 292 534 198" fill="#E9D7C6"/>
+  <rect x="328" y="540" width="224" height="40" rx="20" fill="#B06548"/>
+  <text x="92" y="112" fill="#221E47" fill-opacity="0.54" font-family="Georgia, serif" font-size="28" letter-spacing="8">COLORFUL CURTAINS</text>
+  <text x="92" y="680" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="26">Backdrop curtain layering placeholder.</text>
+</svg>

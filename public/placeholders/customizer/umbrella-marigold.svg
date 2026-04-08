@@ -1,0 +1,13 @@
+<svg width="880" height="760" viewBox="0 0 880 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="880" height="760" fill="#F7F6F3"/>
+  <rect x="44" y="42" width="792" height="676" rx="34" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="690" cy="170" rx="106" ry="106" fill="#E1B1B7" fill-opacity="0.3"/>
+  <path d="M220 332C220 224.857 316.857 138 424 138C531.143 138 628 224.857 628 332H220Z" fill="#EEC60A"/>
+  <path d="M220 332H628" stroke="#221E47" stroke-width="10"/>
+  <path d="M246 332C264 362 294 382 326 382C358 382 390 362 408 332" stroke="#B06548" stroke-width="10" stroke-linecap="round"/>
+  <path d="M408 332C426 362 458 382 490 382C522 382 554 362 572 332" stroke="#B06548" stroke-width="10" stroke-linecap="round"/>
+  <path d="M424 332V584" stroke="#221E47" stroke-width="12" stroke-linecap="round"/>
+  <path d="M424 584C424 620 456 620 456 590" stroke="#221E47" stroke-width="12" stroke-linecap="round"/>
+  <text x="92" y="112" fill="#221E47" fill-opacity="0.54" font-family="Georgia, serif" font-size="28" letter-spacing="8">MARIGOLD UMBRELLA</text>
+  <text x="92" y="680" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="26">Marigold scallop umbrella placeholder.</text>
+</svg>

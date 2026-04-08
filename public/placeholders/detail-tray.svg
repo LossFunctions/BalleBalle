@@ -1,0 +1,15 @@
+<svg width="880" height="880" viewBox="0 0 880 880" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="880" height="880" fill="#F7F6F3"/>
+  <rect x="52" y="52" width="776" height="776" rx="40" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="670" cy="182" rx="118" ry="118" fill="#EEC60A" fill-opacity="0.28"/>
+  <circle cx="438" cy="456" r="226" fill="#221E47"/>
+  <circle cx="438" cy="456" r="170" fill="#B06548"/>
+  <circle cx="438" cy="456" r="116" fill="#F7F6F3"/>
+  <circle cx="438" cy="456" r="52" fill="#EEC60A"/>
+  <circle cx="286" cy="328" r="44" fill="#E1B1B7"/>
+  <circle cx="594" cy="328" r="44" fill="#E1B1B7"/>
+  <circle cx="286" cy="584" r="44" fill="#E1B1B7"/>
+  <circle cx="594" cy="584" r="44" fill="#E1B1B7"/>
+  <text x="106" y="118" fill="#221E47" fill-opacity="0.56" font-family="Georgia, serif" font-size="30" letter-spacing="8">TRAY DETAIL</text>
+  <text x="106" y="768" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="28">Marigold-toned accents and tabletop styling placeholder.</text>
+</svg>

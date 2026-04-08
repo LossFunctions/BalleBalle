@@ -1,0 +1,18 @@
+<svg width="1100" height="1400" viewBox="0 0 1100 1400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="1400" fill="#F7F6F3"/>
+  <rect x="62" y="62" width="976" height="1276" rx="42" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="840" cy="226" rx="154" ry="154" fill="#EEC60A" fill-opacity="0.24"/>
+  <ellipse cx="238" cy="1116" rx="202" ry="148" fill="#E1B1B7" fill-opacity="0.34"/>
+  <rect x="168" y="414" width="764" height="538" rx="56" fill="#221E47"/>
+  <rect x="232" y="468" width="638" height="430" rx="42" fill="#D3B69D"/>
+  <circle cx="430" cy="590" r="86" fill="#E1B1B7"/>
+  <circle cx="668" cy="590" r="86" fill="#0B7B4C"/>
+  <rect x="296" y="736" width="472" height="118" rx="46" fill="#B06548"/>
+  <rect x="332" y="772" width="400" height="52" rx="26" fill="#EEC60A"/>
+  <rect x="214" y="258" width="248" height="184" rx="32" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <path d="M270 320H402" stroke="#221E47" stroke-opacity="0.28" stroke-width="6" stroke-linecap="round"/>
+  <path d="M270 352H366" stroke="#221E47" stroke-opacity="0.22" stroke-width="6" stroke-linecap="round"/>
+  <path d="M270 384H416" stroke="#221E47" stroke-opacity="0.18" stroke-width="6" stroke-linecap="round"/>
+  <text x="126" y="124" fill="#221E47" fill-opacity="0.56" font-family="Georgia, serif" font-size="34" letter-spacing="8">IN-USE PLACEHOLDER</text>
+  <text x="126" y="1274" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="30">Portrait proof of the setup during an intimate celebration.</text>
+</svg>

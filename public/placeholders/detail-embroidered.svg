@@ -1,0 +1,15 @@
+<svg width="880" height="1040" viewBox="0 0 880 1040" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="880" height="1040" fill="#F7F6F3"/>
+  <rect x="52" y="48" width="776" height="944" rx="36" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="624" cy="214" rx="124" ry="124" fill="#E1B1B7" fill-opacity="0.28"/>
+  <rect x="152" y="246" width="574" height="488" rx="48" fill="#221E47"/>
+  <rect x="210" y="302" width="216" height="320" rx="46" fill="#E9D7C6"/>
+  <rect x="454" y="338" width="168" height="248" rx="38" fill="#B06548"/>
+  <path d="M230 358C268 322 366 322 404 358" stroke="#EEC60A" stroke-width="8" stroke-linecap="round"/>
+  <path d="M478 394C508 360 568 360 598 394" stroke="#F7F6F3" stroke-width="8" stroke-linecap="round"/>
+  <path d="M232 420H404" stroke="#221E47" stroke-opacity="0.24" stroke-width="6" stroke-linecap="round"/>
+  <path d="M232 452H404" stroke="#221E47" stroke-opacity="0.18" stroke-width="6" stroke-linecap="round"/>
+  <rect x="174" y="780" width="532" height="84" rx="42" fill="#0B7B4C" fill-opacity="0.84"/>
+  <text x="106" y="118" fill="#221E47" fill-opacity="0.56" font-family="Georgia, serif" font-size="32" letter-spacing="8">DETAIL PLACEHOLDER</text>
+  <text x="106" y="920" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="28">Embroidered cushions, trims, and close textile detail.</text>
+</svg>

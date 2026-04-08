@@ -1,0 +1,12 @@
+<svg width="880" height="760" viewBox="0 0 880 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="880" height="760" fill="#F7F6F3"/>
+  <rect x="44" y="42" width="792" height="676" rx="34" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="674" cy="160" rx="112" ry="112" fill="#EEC60A" fill-opacity="0.2"/>
+  <path d="M240 572V214C240 183.072 265.072 158 296 158H584C614.928 158 640 183.072 640 214V572" stroke="#221E47" stroke-width="18" stroke-linecap="round"/>
+  <path d="M308 198H572" stroke="#221E47" stroke-width="18" stroke-linecap="round"/>
+  <path d="M310 224C310 332 356 404 440 498C524 404 570 332 570 224" fill="#E1B1B7" fill-opacity="0.72"/>
+  <path d="M340 224C340 336 380 392 440 458C500 392 540 336 540 224" fill="#E9D7C6"/>
+  <rect x="344" y="520" width="192" height="44" rx="22" fill="#0B7B4C"/>
+  <text x="92" y="112" fill="#221E47" fill-opacity="0.54" font-family="Georgia, serif" font-size="28" letter-spacing="8">BACKDROP STAND</text>
+  <text x="92" y="680" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="26">Backdrop frame and drape placeholder.</text>
+</svg>

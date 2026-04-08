@@ -1,0 +1,14 @@
+<svg width="880" height="760" viewBox="0 0 880 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="880" height="760" fill="#F7F6F3"/>
+  <rect x="44" y="42" width="792" height="676" rx="34" fill="#F9F8F4" stroke="#221E47" stroke-opacity="0.08"/>
+  <ellipse cx="684" cy="160" rx="108" ry="108" fill="#EEC60A" fill-opacity="0.24"/>
+  <ellipse cx="210" cy="584" rx="128" ry="98" fill="#E1B1B7" fill-opacity="0.32"/>
+  <rect x="154" y="176" width="260" height="374" rx="128" fill="#221E47"/>
+  <rect x="204" y="232" width="160" height="262" rx="78" fill="#E9D7C6"/>
+  <rect x="482" y="138" width="238" height="422" rx="118" fill="#0B7B4C"/>
+  <rect x="528" y="196" width="146" height="308" rx="70" fill="#B06548"/>
+  <rect x="228" y="606" width="194" height="36" rx="18" fill="#E1B1B7"/>
+  <rect x="506" y="606" width="192" height="36" rx="18" fill="#EEC60A"/>
+  <text x="92" y="112" fill="#221E47" fill-opacity="0.54" font-family="Georgia, serif" font-size="28" letter-spacing="8">DUAL DHOLS</text>
+  <text x="92" y="680" fill="#221E47" fill-opacity="0.64" font-family="Arial, sans-serif" font-size="26">Two dhols with different finishes for a fuller setup.</text>
+</svg>
