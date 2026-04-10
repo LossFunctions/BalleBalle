@@ -151,7 +151,7 @@ export function Homepage() {
                 </article>
                 <article className="rounded-[1.7rem] border border-ink/8 bg-paper p-5">
                   <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                    Add-ons
+                    Extras
                   </p>
                   <p className="mt-3 font-display text-4xl leading-none text-indigo">
                     {customizeAddOns.length}
