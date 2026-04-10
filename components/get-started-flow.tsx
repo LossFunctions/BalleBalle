@@ -7,21 +7,24 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
   bundlePaths,
   customizeAddOns,
   customizeSteps,
-  type AddOnOption,
   type BundlePath,
   type CustomizeOption,
+  type CustomizeStep,
 } from "@/lib/site-content";
 
 type PathMode = BundlePath["id"];
-type StepSelection = string[] | "skip" | null;
+type StepSelection = Record<string, number> | "skip" | null;
 type SelectionMap = Record<string, StepSelection>;
-type AddOnSelectionMap = Record<string, boolean>;
+type AddOnSelectionMap = Record<string, number>;
 type ScrollTarget = "flow" | "addons";
 type FlowSnapshot = {
   draftSelections: SelectionMap;
@@ -37,6 +40,176 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 0,
 });
+const PRICE_PILL_CLASSES =
+  "inline-flex rounded-full border border-indigo/10 bg-paper px-3 py-1 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/58";
+const OPTION_IMAGE_MOTION_CLASSES =
+  "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]";
+const OPTION_IMAGE_FRAME_TONE_CLASSES = {
+  soft: "aspect-[4/3] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,241,234,0.96)_62%,rgba(237,231,223,0.94))]",
+  light:
+    "aspect-[4/3] bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(247,244,239,0.96))]",
+  dark: "aspect-[4/3] bg-[radial-gradient(circle_at_top,rgba(111,88,71,0.48),rgba(58,43,34,0.96)_60%,rgba(24,18,16,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+} as const;
+const OPTION_IMAGE_PREVIEW_STAGE_CLASSES = {
+  soft: "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,241,234,0.96)_62%,rgba(237,231,223,0.94))]",
+  light:
+    "bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(247,244,239,0.96))]",
+  dark: "bg-[radial-gradient(circle_at_top,rgba(111,88,71,0.48),rgba(58,43,34,0.96)_60%,rgba(24,18,16,0.98))]",
+} as const;
+const SELECTED_PREVIEW_ZOOM_SCALE = 1.72;
+
+type OptionImageFrameTone = keyof typeof OPTION_IMAGE_FRAME_TONE_CLASSES;
+type OptionImageSubjectStyle = "default" | "cutout";
+type PreviewZoomState = {
+  active: boolean;
+  hovered: boolean;
+  x: number;
+  y: number;
+};
+
+type OptionImagePresentation = {
+  frameTone: OptionImageFrameTone;
+  subjectStyle: OptionImageSubjectStyle;
+  frameClassName: string;
+  imageClassName: string;
+  imageStyle?: CSSProperties;
+  previewImageStyle?: CSSProperties;
+  showBackdropImage: boolean;
+  backdropClassName: string;
+  backdropScrimClassName: string;
+  previewStageClassName: string;
+  previewImageClassName: string;
+  previewBaseScale: number;
+  previewTranslateX: string;
+  previewTranslateY: string;
+};
+
+type OptionMediaProps = {
+  asset: CustomizeOption["image"];
+  className: string;
+  sizes?: string;
+  style?: CSSProperties;
+  decorative?: boolean;
+  withControls?: boolean;
+};
+
+type QuantityStepperProps = {
+  quantity: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+  decrementLabel: string;
+  incrementLabel: string;
+};
+
+function QuantityStepper({
+  quantity,
+  onDecrement,
+  onIncrement,
+  decrementLabel,
+  incrementLabel,
+}: QuantityStepperProps) {
+  const buttonClasses =
+    "pressable inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo/10 bg-paper text-lg leading-none text-indigo shadow-[0_14px_30px_-20px_rgba(34,30,71,0.26)] transition hover:bg-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-40";
+
+  return (
+    <div className="inline-flex items-center rounded-full border border-indigo/10 bg-paper p-1 shadow-[0_14px_30px_-22px_rgba(34,30,71,0.22)]">
+      <button
+        aria-label={decrementLabel}
+        className={buttonClasses}
+        disabled={quantity <= 0}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDecrement();
+        }}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        type="button"
+      >
+        <span aria-hidden="true">−</span>
+      </button>
+      <span className="min-w-8 text-center text-xs font-semibold tabular-nums text-indigo/70">
+        {quantity}
+      </span>
+      <button
+        aria-label={incrementLabel}
+        className={buttonClasses}
+        onClick={(event) => {
+          event.stopPropagation();
+          onIncrement();
+        }}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        type="button"
+      >
+        <span aria-hidden="true">+</span>
+      </button>
+    </div>
+  );
+}
+
+const getVideoMimeType = (src: string) => {
+  const extension = src.split(".").pop()?.toLowerCase();
+
+  switch (extension) {
+    case "webm":
+      return "video/webm";
+    case "ogg":
+    case "ogv":
+      return "video/ogg";
+    case "mov":
+      return "video/quicktime";
+    case "m4v":
+      return "video/x-m4v";
+    default:
+      return "video/mp4";
+  }
+};
+
+const isVideoAsset = (asset: CustomizeOption["image"]) => asset.kind === "video";
+
+function OptionMedia({
+  asset,
+  className,
+  sizes,
+  style,
+  decorative = false,
+  withControls = false,
+}: OptionMediaProps) {
+  if (isVideoAsset(asset)) {
+    return (
+      <video
+        aria-hidden={decorative || undefined}
+        aria-label={decorative ? undefined : asset.alt}
+        autoPlay
+        className={`absolute inset-0 h-full w-full ${className}`}
+        controls={withControls}
+        loop
+        muted
+        playsInline
+        poster={asset.poster}
+        preload={withControls ? "metadata" : "auto"}
+        style={style}
+      >
+        <source src={asset.src} type={getVideoMimeType(asset.src)} />
+        {asset.alt}
+      </video>
+    );
+  }
+
+  return (
+    <Image
+      alt={decorative ? "" : asset.alt}
+      aria-hidden={decorative || undefined}
+      className={className}
+      fill
+      sizes={sizes}
+      src={asset.src}
+      style={style}
+    />
+  );
+}
 
 const createInitialSelections = (): SelectionMap =>
   customizeSteps.reduce<SelectionMap>((accumulator, step) => {
@@ -46,7 +219,7 @@ const createInitialSelections = (): SelectionMap =>
 
 const createInitialAddOnSelections = (): AddOnSelectionMap =>
   customizeAddOns.reduce<AddOnSelectionMap>((accumulator, option) => {
-    accumulator[option.id] = false;
+    accumulator[option.id] = 0;
     return accumulator;
   }, {});
 
@@ -63,20 +236,139 @@ const scrollToPanel = (element: HTMLDivElement | null) => {
   });
 };
 
-const getSelectionCount = (selection: StepSelection) =>
-  Array.isArray(selection) ? selection.length : 0;
+const getSelectionCount = (selection: StepSelection) => {
+  if (!selection || selection === "skip") {
+    return 0;
+  }
 
-const getSelectionTotal = (pricePerDay: number, selection: StepSelection) =>
-  getSelectionCount(selection) * pricePerDay;
+  return Object.values(selection).reduce((sum, quantity) => sum + quantity, 0);
+};
+
+const getOptionPrice = (step: CustomizeStep, option: CustomizeOption) =>
+  option.pricePerDay ?? step.pricePerDay;
+
+const getSelectionTotal = (step: CustomizeStep, selection: StepSelection) => {
+  if (!selection || selection === "skip") {
+    return 0;
+  }
+
+  return step.options.reduce((sum, option) => {
+    const quantity = selection[option.id] ?? 0;
+
+    if (quantity <= 0) {
+      return sum;
+    }
+
+    return sum + getOptionPrice(step, option) * quantity;
+  }, 0);
+};
 
 const formatDailyPrice = (amount: number) =>
   `${currencyFormatter.format(amount)}/day`;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+const getDefaultOptionImageFit = (image: CustomizeOption["image"]) =>
+  image.src.startsWith("/product-pictures/") ? "contain" : "cover";
+
+const getDefaultOptionFrameTone = (image: CustomizeOption["image"]) => {
+  if (image.src.endsWith(".png")) {
+    return "soft";
+  }
+
+  return "light";
+};
+
+const getDefaultOptionSubjectStyle = (image: CustomizeOption["image"]) =>
+  image.src.endsWith(".png") ? "cutout" : "default";
+
+const getOptionImagePresentation = (
+  image: CustomizeOption["image"],
+): OptionImagePresentation => {
+  const fit = image.presentation?.fit ?? getDefaultOptionImageFit(image);
+  const frameTone =
+    image.presentation?.frameTone ?? getDefaultOptionFrameTone(image);
+  const subjectStyle =
+    image.presentation?.subjectStyle ?? getDefaultOptionSubjectStyle(image);
+  const usesContain = fit === "contain";
+  const isCutout = subjectStyle === "cutout";
+  const showBackdropImage = usesContain && !isCutout && !isVideoAsset(image);
+  const baseScale =
+    image.presentation?.scale ??
+    (usesContain ? (isCutout ? 1.1 : 1.01) : 1);
+  const hoverScale =
+    image.presentation?.hoverScale ??
+    (usesContain
+      ? isCutout
+        ? baseScale + 0.05
+        : baseScale + 0.02
+      : Math.max(baseScale, 1.05));
+  const translateX = image.presentation?.translateX ?? "0px";
+  const translateY = image.presentation?.translateY ?? "0px";
+  const previewBaseScale = image.presentation?.previewScale ?? 1;
+  const previewTranslateX = image.presentation?.previewTranslateX ?? translateX;
+  const previewTranslateY = image.presentation?.previewTranslateY ?? translateY;
+  const imageClassName = [
+    usesContain ? "object-contain" : "object-cover",
+    "translate-x-[var(--option-image-translate-x)] translate-y-[var(--option-image-translate-y)] scale-[var(--option-image-scale)] group-hover:scale-[var(--option-image-hover-scale)]",
+    OPTION_IMAGE_MOTION_CLASSES,
+    isCutout
+      ? "drop-shadow-[0_22px_34px_rgba(34,30,71,0.18)]"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const backdropClassName = [
+    "object-cover scale-[1.22]",
+    frameTone === "dark"
+      ? "blur-2xl opacity-72 saturate-[0.88]"
+      : "blur-[26px] opacity-42 saturate-[0.92]",
+  ].join(" ");
+  const backdropScrimClassName =
+    frameTone === "dark"
+      ? "absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(214,191,171,0.22),rgba(54,38,29,0.4)_54%,rgba(16,11,9,0.58))]"
+      : "absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.44),rgba(249,246,241,0.74))]";
+  const previewImageClassName = [
+    `${usesContain ? "object-contain" : "object-cover"} transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform`,
+    isCutout ? "drop-shadow-[0_40px_64px_rgba(34,30,71,0.24)]" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    frameTone,
+    subjectStyle,
+    frameClassName: OPTION_IMAGE_FRAME_TONE_CLASSES[frameTone],
+    imageClassName,
+    imageStyle: {
+      ...(image.presentation?.objectPosition
+        ? { objectPosition: image.presentation.objectPosition }
+        : {}),
+      "--option-image-scale": `${baseScale}`,
+      "--option-image-hover-scale": `${hoverScale}`,
+      "--option-image-translate-x": translateX,
+      "--option-image-translate-y": translateY,
+    } as CSSProperties,
+    previewImageStyle: image.presentation?.objectPosition
+      ? { objectPosition: image.presentation.objectPosition }
+      : undefined,
+    showBackdropImage,
+    backdropClassName,
+    backdropScrimClassName,
+    previewStageClassName: OPTION_IMAGE_PREVIEW_STAGE_CLASSES[frameTone],
+    previewImageClassName,
+    previewBaseScale,
+    previewTranslateX,
+    previewTranslateY,
+  };
+};
 
 const cloneSelectionMap = (selectionMap: SelectionMap): SelectionMap =>
   Object.fromEntries(
     Object.entries(selectionMap).map(([stepId, selection]) => [
       stepId,
-      Array.isArray(selection) ? [...selection] : selection,
+      selection && selection !== "skip" ? { ...selection } : selection,
     ]),
   );
 
@@ -85,7 +377,7 @@ const createStandardPresetSelections = (): SelectionMap =>
     const randomOption =
       step.options[Math.floor(Math.random() * step.options.length)];
 
-    accumulator[step.id] = randomOption ? [randomOption.id] : null;
+    accumulator[step.id] = randomOption ? { [randomOption.id]: 1 } : null;
 
     return accumulator;
   }, {});
@@ -138,6 +430,16 @@ export function GetStartedFlow({
   const [addOnSelections, setAddOnSelections] = useState<AddOnSelectionMap>(() =>
     ({ ...initialSnapshot.addOnSelections }),
   );
+  const [previewOptionIds, setPreviewOptionIds] = useState<Record<string, string>>(
+    {},
+  );
+  const [previewMotionDirection, setPreviewMotionDirection] = useState<-1 | 1>(1);
+  const [previewZoomState, setPreviewZoomState] = useState<PreviewZoomState>({
+    active: false,
+    hovered: false,
+    x: 0.5,
+    y: 0.5,
+  });
   const [scrollKey, setScrollKey] = useState(0);
   const flowPanelRef = useRef<HTMLDivElement | null>(null);
   const addOnsRef = useRef<HTMLDivElement | null>(null);
@@ -150,6 +452,8 @@ export function GetStartedFlow({
   );
 
   const hasStandardPath = bundlePaths.some((path) => path.id === "standard");
+  const getOptionImages = (option: CustomizeOption) =>
+    option.gallery && option.gallery.length > 0 ? option.gallery : [option.image];
 
   useEffect(() => {
     if (!pendingScrollTargetRef.current) {
@@ -177,26 +481,79 @@ export function GetStartedFlow({
   const allStepsCompleted = customizeSteps.every(
     (step) => confirmedSelections[step.id] !== null,
   );
-  const selectedAddOns = customizeAddOns.filter((option) => addOnSelections[option.id]);
+  const selectedAddOns = customizeAddOns.filter(
+    (option) => (addOnSelections[option.id] ?? 0) > 0,
+  );
+  const selectedAddOnsCount = selectedAddOns.reduce(
+    (sum, option) => sum + (addOnSelections[option.id] ?? 0),
+    0,
+  );
   const currentStep = customizeSteps[currentStepIndex];
   const currentSelectionState = draftSelections[currentStep.id];
-  const currentSelectedIds = Array.isArray(currentSelectionState) ? currentSelectionState : [];
+  const currentSelectionMap =
+    currentSelectionState && currentSelectionState !== "skip"
+      ? currentSelectionState
+      : null;
+  const selectedCurrentOptions = currentStep.options.filter(
+    (option) => (currentSelectionMap?.[option.id] ?? 0) > 0,
+  );
   const canAdvanceCurrentStep =
-    currentSelectionState === "skip" || currentSelectedIds.length > 0;
+    currentSelectionState === "skip" || getSelectionCount(currentSelectionState) > 0;
   const lastStepIndex = customizeSteps.length - 1;
   const isLastStep = currentStepIndex === lastStepIndex;
   const getEffectiveSelection = (stepId: string) => draftSelections[stepId];
   const coreSubtotal = customizeSteps.reduce(
-    (sum, step) => sum + getSelectionTotal(step.pricePerDay, getEffectiveSelection(step.id)),
+    (sum, step) => sum + getSelectionTotal(step, getEffectiveSelection(step.id)),
     0,
   );
   const addOnsSubtotal = selectedAddOns.reduce(
-    (sum, option) => sum + option.pricePerDay,
+    (sum, option) => sum + option.pricePerDay * (addOnSelections[option.id] ?? 0),
     0,
   );
   const subtotal = coreSubtotal + addOnsSubtotal;
-  const addOnsStatus = selectedAddOns.length > 0 ? "Selected" : "Pending";
+  const addOnsStatus = selectedAddOnsCount > 0 ? "Selected" : "Pending";
   const currentProgressIndex = showAddOns ? null : currentStepIndex;
+  const modeHelperCopy =
+    mode === "standard"
+      ? "Items are pre-selected based on a recommended standard setup."
+      : "Customize your setup by adding the items you need.";
+  const selectedPreviewOption =
+    selectedCurrentOptions.find(
+      (option) => option.id === previewOptionIds[currentStep.id],
+    ) ?? selectedCurrentOptions[0] ?? null;
+  const selectedPreviewImages = selectedPreviewOption
+    ? getOptionImages(selectedPreviewOption)
+    : [];
+  const selectedPreviewImageIndex = selectedPreviewOption
+    ? optionImageIndexes[selectedPreviewOption.id] ?? 0
+    : 0;
+  const selectedPreviewImage = selectedPreviewOption
+    ? selectedPreviewImages[selectedPreviewImageIndex] ?? selectedPreviewImages[0]
+    : null;
+  const selectedPreviewHasGallery = selectedPreviewImages.length > 1;
+  const selectedPreviewPresentation = selectedPreviewImage
+    ? getOptionImagePresentation(selectedPreviewImage)
+    : null;
+  const selectedPreviewCanZoom = Boolean(
+    selectedPreviewImage && !isVideoAsset(selectedPreviewImage),
+  );
+  const selectedPreviewMotionClassName =
+    previewMotionDirection === 1
+      ? "selected-preview-shift-next"
+      : "selected-preview-shift-prev";
+  const selectedPreviewImageStyle =
+    selectedPreviewPresentation && selectedPreviewImage
+      ? {
+          ...(selectedPreviewPresentation.previewImageStyle ?? {}),
+          transform: `translate(${selectedPreviewPresentation.previewTranslateX}, ${selectedPreviewPresentation.previewTranslateY}) scale(${
+            selectedPreviewPresentation.previewBaseScale *
+            (previewZoomState.active && selectedPreviewCanZoom
+              ? SELECTED_PREVIEW_ZOOM_SCALE
+              : 1)
+          })`,
+          transformOrigin: `${previewZoomState.x * 100}% ${previewZoomState.y * 100}%`,
+        }
+      : undefined;
 
   const queueScroll = (target: ScrollTarget) => {
     pendingScrollTargetRef.current = target;
@@ -219,9 +576,6 @@ export function GetStartedFlow({
     setShowAddOns(snapshot.showAddOns);
   };
 
-  const getOptionImages = (option: CustomizeOption) =>
-    option.gallery && option.gallery.length > 0 ? option.gallery : [option.image];
-
   const cycleOptionImage = (
     optionId: string,
     imageCount: number,
@@ -231,6 +585,15 @@ export function GetStartedFlow({
       return;
     }
 
+    setPreviewMotionDirection(direction);
+    setPreviewZoomState((currentZoomState) => ({
+      ...currentZoomState,
+      active: false,
+    }));
+    setPreviewOptionIds((currentPreviewOptionIds) => ({
+      ...currentPreviewOptionIds,
+      [currentStep.id]: optionId,
+    }));
     setOptionImageIndexes((currentIndexes) => {
       const currentIndex = currentIndexes[optionId] ?? 0;
       const nextIndex = (currentIndex + direction + imageCount) % imageCount;
@@ -250,6 +613,81 @@ export function GetStartedFlow({
       event.preventDefault();
       onSelect();
     }
+  };
+
+  const updateSelectedPreviewZoom = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (!selectedPreviewCanZoom || !previewZoomState.active) {
+      return;
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      return;
+    }
+
+    const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+    const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
+
+    setPreviewZoomState({
+      active: true,
+      hovered: true,
+      x,
+      y,
+    });
+  };
+
+  const resetSelectedPreviewZoom = () => {
+    setPreviewZoomState((currentZoomState) => ({
+      ...currentZoomState,
+      active: false,
+      hovered: false,
+    }));
+  };
+
+  const handleSelectedPreviewPointerEnter = () => {
+    if (!selectedPreviewCanZoom) {
+      return;
+    }
+
+    setPreviewZoomState((currentZoomState) => ({
+      ...currentZoomState,
+      hovered: true,
+    }));
+  };
+
+  const handleSelectedPreviewPointerLeave = () => {
+    setPreviewZoomState((currentZoomState) => ({
+      ...currentZoomState,
+      active: false,
+      hovered: false,
+    }));
+  };
+
+  const toggleSelectedPreviewZoom = (
+    event: ReactMouseEvent<HTMLDivElement> | ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (!selectedPreviewCanZoom) {
+      return;
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      return;
+    }
+
+    const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+    const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
+
+    setPreviewZoomState((currentZoomState) => ({
+      active: !currentZoomState.active,
+      hovered: true,
+      x,
+      y,
+    }));
   };
 
   const selectionStateForStep = (stepId: string) => {
@@ -274,10 +712,13 @@ export function GetStartedFlow({
       };
     }
 
-    const selectedOptions = step.options.filter((option) => selection.includes(option.id));
-    const total = getSelectionTotal(step.pricePerDay, selection);
+    const selectedOptions = step.options.filter(
+      (option) => (selection[option.id] ?? 0) > 0,
+    );
+    const selectedCount = getSelectionCount(selection);
+    const total = getSelectionTotal(step, selection);
 
-    if (selectedOptions.length === 0) {
+    if (selectedOptions.length === 0 || selectedCount === 0) {
       return {
         status: "Pending",
         tone: "pending" as const,
@@ -289,12 +730,18 @@ export function GetStartedFlow({
     return {
       status: "Selected",
       tone: "selected" as const,
-      headline: selectedOptions.map((option) => option.title).join(", "),
-      priceLine: `${selectedOptions.length} selected • ${formatDailyPrice(total)}`,
+      headline: selectedOptions
+        .map((option) => {
+          const quantity = selection[option.id] ?? 0;
+          return quantity > 1 ? `${option.title} ×${quantity}` : option.title;
+        })
+        .join(", "),
+      priceLine: `${selectedCount} selected • ${formatDailyPrice(total)}`,
     };
   };
 
   const jumpToStep = (stepIndex: number) => {
+    resetSelectedPreviewZoom();
     startTransition(() => {
       setShowAddOns(false);
       setCurrentStepIndex(stepIndex);
@@ -304,6 +751,7 @@ export function GetStartedFlow({
   };
 
   const jumpToAddOns = () => {
+    resetSelectedPreviewZoom();
     startTransition(() => {
       setShowAddOns(true);
     });
@@ -336,28 +784,56 @@ export function GetStartedFlow({
       customSnapshotRef.current = cloneFlowSnapshot(nextSnapshot);
     }
 
+    resetSelectedPreviewZoom();
     startTransition(() => {
       setMode(nextMode);
       applySnapshot(nextSnapshot);
     });
   };
 
-  const handleSelect = (stepId: string, option: CustomizeOption) => {
+  const updateStepOptionQuantity = (
+    stepId: string,
+    optionId: string,
+    adjustQuantity: (currentQuantity: number) => number,
+  ) => {
+    setPreviewMotionDirection(1);
+    resetSelectedPreviewZoom();
+    setPreviewOptionIds((currentPreviewOptionIds) => ({
+      ...currentPreviewOptionIds,
+      [stepId]: optionId,
+    }));
     setDraftSelections((currentSelections) => {
       const existingSelection = currentSelections[stepId];
-      const selectedIds = Array.isArray(existingSelection) ? existingSelection : [];
-      const nextSelectedIds = selectedIds.includes(option.id)
-        ? selectedIds.filter((id) => id !== option.id)
-        : [...selectedIds, option.id];
+      const selectionMap =
+        existingSelection && existingSelection !== "skip"
+          ? { ...existingSelection }
+          : {};
+      const currentQuantity = selectionMap[optionId] ?? 0;
+      const nextQuantity = Math.max(0, adjustQuantity(currentQuantity));
+
+      if (nextQuantity <= 0) {
+        delete selectionMap[optionId];
+      } else {
+        selectionMap[optionId] = nextQuantity;
+      }
+
+      const hasSelections = Object.values(selectionMap).some((quantity) => quantity > 0);
 
       return {
         ...currentSelections,
-        [stepId]: nextSelectedIds.length > 0 ? nextSelectedIds : null,
+        [stepId]: hasSelections ? selectionMap : null,
       };
     });
   };
 
+  const handleSelect = (stepId: string, option: CustomizeOption) => {
+    updateStepOptionQuantity(stepId, option.id, (currentQuantity) =>
+      currentQuantity > 0 ? 0 : 1,
+    );
+  };
+
   const handleSkip = () => {
+    resetSelectedPreviewZoom();
     startTransition(() => {
       setDraftSelections((currentSelections) => ({
         ...currentSelections,
@@ -397,11 +873,25 @@ export function GetStartedFlow({
     jumpToStep(currentStepIndex + 1);
   };
 
-  const toggleAddOn = (option: AddOnOption) => {
-    setAddOnSelections((currentSelections) => ({
-      ...currentSelections,
-      [option.id]: !currentSelections[option.id],
-    }));
+  const updateAddOnQuantity = (
+    optionId: string,
+    adjustQuantity: (currentQuantity: number) => number,
+  ) => {
+    setAddOnSelections((currentSelections) => {
+      const currentQuantity = currentSelections[optionId] ?? 0;
+      const nextQuantity = Math.max(0, adjustQuantity(currentQuantity));
+
+      return {
+        ...currentSelections,
+        [optionId]: nextQuantity,
+      };
+    });
+  };
+
+  const toggleAddOn = (optionId: string) => {
+    updateAddOnQuantity(optionId, (currentQuantity) =>
+      currentQuantity > 0 ? 0 : 1,
+    );
   };
 
   const handleAddOnsCardClick = () => {
@@ -417,6 +907,8 @@ export function GetStartedFlow({
       customSnapshotRef.current = cloneFlowSnapshot(nextSnapshot);
     }
 
+    resetSelectedPreviewZoom();
+    setPreviewOptionIds({});
     startTransition(() => {
       applySnapshot(nextSnapshot);
     });
@@ -425,13 +917,13 @@ export function GetStartedFlow({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="relative space-y-8">
       <section className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="flex flex-wrap items-center gap-3 xl:col-span-2">
-          <div className="inline-flex items-center rounded-full border border-ink/10 bg-paper/70 p-1 shadow-[0_18px_42px_-36px_rgba(34,30,71,0.22)] backdrop-blur">
+        <div className="flex items-center">
+          <div className="flex w-full items-center rounded-full border border-ink/10 bg-paper/70 p-1 shadow-[0_18px_42px_-36px_rgba(34,30,71,0.22)] backdrop-blur">
             <button
               aria-pressed={mode === "customize"}
-              className={`pressable inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold tracking-[-0.01em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
+              className={`pressable inline-flex flex-1 items-center justify-center whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold tracking-[-0.01em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
                 mode === "customize"
                   ? "bg-indigo text-paper shadow-[0_14px_28px_-20px_rgba(34,30,71,0.5)]"
                   : "text-ink/68 hover:bg-cream"
@@ -444,7 +936,7 @@ export function GetStartedFlow({
             {hasStandardPath ? (
               <button
                 aria-pressed={mode === "standard"}
-                className={`pressable inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold tracking-[-0.01em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
+                className={`pressable inline-flex flex-1 items-center justify-center whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold tracking-[-0.01em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
                   mode === "standard"
                     ? "bg-indigo text-paper shadow-[0_14px_28px_-20px_rgba(34,30,71,0.5)]"
                     : "text-ink/68 hover:bg-cream"
@@ -458,10 +950,16 @@ export function GetStartedFlow({
           </div>
         </div>
 
+        <div className="flex items-center xl:justify-end">
+          <div className="w-full max-w-3xl rounded-[1.7rem] border border-ink/10 bg-paper/70 px-5 py-3 text-sm leading-7 text-ink/70 shadow-[0_18px_42px_-36px_rgba(34,30,71,0.18)] backdrop-blur">
+            {modeHelperCopy}
+          </div>
+        </div>
+
         <aside className="xl:sticky xl:top-28 xl:self-start">
           <div className="overflow-hidden rounded-[2.2rem] border border-ink/8 bg-cream shadow-[0_30px_90px_-58px_rgba(34,30,71,0.36)]">
             <div className="pb-1.5 pl-1.5 pr-0.5 pt-1.5">
-              <div className="tailored-scroll rounded-[1.9rem] xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+              <div className="tailored-scroll relative rounded-[1.9rem] xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
                 <div className="p-5 xl:pr-4">
                   <div className="rounded-[1.7rem] border border-indigo/10 bg-paper px-4 py-4 shadow-[0_18px_45px_-38px_rgba(34,30,71,0.3)]">
                     <p className="text-[0.62rem] uppercase tracking-[0.24em] text-indigo/48">
@@ -577,7 +1075,7 @@ export function GetStartedFlow({
                     className={`pressable mt-6 w-full rounded-[1.7rem] border p-4 text-left transition hover:border-indigo/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream ${
                       showAddOns
                         ? "border-indigo/16 bg-paper shadow-[0_18px_40px_-34px_rgba(34,30,71,0.3)]"
-                        : selectedAddOns.length > 0
+                        : selectedAddOnsCount > 0
                           ? "border-mehendi/24 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] shadow-[0_18px_40px_-34px_rgba(11,123,76,0.28)]"
                           : "border-ink/8 bg-paper"
                     }`}
@@ -587,19 +1085,19 @@ export function GetStartedFlow({
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[1.35rem] font-semibold leading-[1.02] tracking-[-0.03em] text-indigo">
-                          Add-ons
+                          Extras
                         </p>
                         <p className="mt-3 text-sm leading-6 text-ink/68">
-                          {selectedAddOns.length > 0
+                          {selectedAddOnsCount > 0
                             ? selectedAddOns
                                 .slice(0, 2)
                                 .map((option) => option.title)
                                 .join(", ")
                             : "Optional finishing extras."}
                         </p>
-                        {selectedAddOns.length > 0 ? (
+                        {selectedAddOnsCount > 0 ? (
                           <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
-                            {selectedAddOns.length} selected • {formatDailyPrice(addOnsSubtotal)}
+                            {selectedAddOnsCount} selected • {formatDailyPrice(addOnsSubtotal)}
                           </p>
                         ) : null}
                       </div>
@@ -607,7 +1105,7 @@ export function GetStartedFlow({
                         className={`rounded-full border px-2 py-1 text-[0.64rem] uppercase tracking-[0.18em] ${
                           showAddOns
                             ? "border-indigo/10 bg-indigo text-paper"
-                            : selectedAddOns.length > 0
+                            : selectedAddOnsCount > 0
                               ? "border-mehendi/12 bg-paper/88 text-mehendi"
                               : "border-ink/8 bg-paper text-ink/55"
                         }`}
@@ -617,6 +1115,7 @@ export function GetStartedFlow({
                     </div>
                   </button>
                 </div>
+
               </div>
             </div>
           </div>
@@ -632,7 +1131,7 @@ export function GetStartedFlow({
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="max-w-2xl">
                     <h3 className="font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
-                      Add-ons
+                      Extras
                     </h3>
                     {mode === "standard" ? (
                       <p className="mt-3 max-w-xl text-sm leading-7 text-ink/64">
@@ -648,7 +1147,7 @@ export function GetStartedFlow({
                         Selected
                       </p>
                       <p className="mt-2 font-display text-3xl leading-none text-indigo">
-                        {selectedAddOns.length}
+                        {selectedAddOnsCount}
                       </p>
                     </div>
                     <div className="rounded-[1.5rem] border border-indigo/10 bg-cream px-4 py-3">
@@ -662,34 +1161,60 @@ export function GetStartedFlow({
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {customizeAddOns.map((option) => {
-                    const selected = addOnSelections[option.id];
-
-                    return (
-                      <button
-                        className={`pressable group rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
+	                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+	                  {customizeAddOns.map((option) => {
+	                    const quantity = addOnSelections[option.id] ?? 0;
+	                    const selected = quantity > 0;
+	                    const addedBadgeLabel = quantity > 1 ? `Added ×${quantity}` : "Added";
+	                    const addOnImagePresentation = getOptionImagePresentation(option.image);
+	
+	                    return (
+                      <div
+                        aria-pressed={selected}
+                        className={`pressable group cursor-pointer rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
                           selected
                             ? "border-mehendi/28 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.96))] shadow-[0_22px_44px_-32px_rgba(11,123,76,0.45)]"
                             : "border-ink/8 bg-cream hover:-translate-y-1 hover:border-indigo/14 hover:shadow-[0_22px_44px_-34px_rgba(34,30,71,0.28)]"
                         }`}
                         key={option.id}
-                        onClick={() => toggleAddOn(option)}
-                        type="button"
-                      >
-                        <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-paper">
-                          <div className="relative aspect-[5/4]">
-                            <Image
-                              alt={option.image.alt}
-                              className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.06]"
-                              fill
-                              sizes="(min-width: 1280px) 18vw, (min-width: 768px) 40vw, 100vw"
-                              src={option.image.src}
-                            />
-                          </div>
-                          {selected ? (
-                            <span className="absolute left-4 top-4 rounded-full border border-mehendi/10 bg-paper/88 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-mehendi backdrop-blur">
-                              Added
+                        onClick={() => toggleAddOn(option.id)}
+                        onKeyDown={(event) =>
+                          handleSelectableCardKeyDown(event, () =>
+                            toggleAddOn(option.id),
+                          )
+                        }
+                        role="button"
+                        tabIndex={0}
+	                      >
+	                        <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
+	                          <div
+	                            className={`relative aspect-[5/4] ${addOnImagePresentation.previewStageClassName}`}
+	                          >
+	                            {addOnImagePresentation.showBackdropImage ? (
+	                              <>
+	                                <OptionMedia
+	                                  asset={option.image}
+	                                  className={addOnImagePresentation.backdropClassName}
+	                                  decorative
+	                                  sizes="(min-width: 1280px) 18vw, (min-width: 768px) 40vw, 100vw"
+	                                />
+	                                <div
+	                                  aria-hidden="true"
+	                                  className={addOnImagePresentation.backdropScrimClassName}
+	                                />
+	                              </>
+	                            ) : null}
+	                            <OptionMedia
+	                              asset={option.image}
+	                              className={addOnImagePresentation.imageClassName}
+	                              decorative
+	                              sizes="(min-width: 1280px) 18vw, (min-width: 768px) 40vw, 100vw"
+	                              style={addOnImagePresentation.imageStyle}
+	                            />
+	                          </div>
+	                          {selected ? (
+	                            <span className="absolute left-4 top-4 rounded-full border border-mehendi/10 bg-paper/88 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-mehendi backdrop-blur">
+                              {addedBadgeLabel}
                             </span>
                           ) : null}
                         </div>
@@ -701,28 +1226,54 @@ export function GetStartedFlow({
                           <p className="mt-2 text-[0.72rem] uppercase tracking-[0.2em] text-indigo/48">
                             {option.subtitle}
                           </p>
-                          <div className="mt-4 flex items-center justify-between gap-3">
-                            <p className="text-sm leading-6 text-ink/62">
-                              {selected ? "Added to your package" : "Add separately"}
-                            </p>
-                            <span className="rounded-full border border-indigo/10 bg-paper px-3 py-1 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/58">
+                          <div
+                            className={`mt-4 flex items-center ${
+                              selected ? "justify-between gap-3" : "justify-end"
+                            }`}
+                          >
+                            {selected ? (
+                              <QuantityStepper
+                                decrementLabel={`Decrease quantity for ${option.title}`}
+                                incrementLabel={`Increase quantity for ${option.title}`}
+                                onDecrement={() =>
+                                  updateAddOnQuantity(option.id, (currentQuantity) =>
+                                    currentQuantity - 1,
+                                  )
+                                }
+                                onIncrement={() =>
+                                  updateAddOnQuantity(option.id, (currentQuantity) =>
+                                    currentQuantity + 1,
+                                  )
+                                }
+                                quantity={quantity}
+                              />
+                            ) : null}
+                            <span className={PRICE_PILL_CLASSES}>
                               {formatDailyPrice(option.pricePerDay)}
                             </span>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
 
                 <div className="mt-6 rounded-[1.8rem] border border-ink/8 bg-cream p-5">
                   <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                    Add-on summary
+                    Extras summary
                   </p>
                   <p className="mt-3 text-sm leading-7 text-ink/72">
-                    {selectedAddOns.length > 0
-                      ? selectedAddOns.map((option) => option.selectionSummary).join(" ")
-                      : "No add-ons selected yet. Leave this section empty if you only want the core setup."}
+                    {selectedAddOnsCount > 0
+                      ? selectedAddOns
+                          .map((option) => {
+                            const quantity = addOnSelections[option.id] ?? 0;
+                            const quantitySuffix =
+                              quantity > 1 ? ` (×${quantity})` : "";
+
+                            return `${option.selectionSummary}${quantitySuffix}`;
+                          })
+                          .join(" ")
+                      : "No extras selected yet. Leave this section empty if you only want the core setup."}
                   </p>
                 </div>
 
@@ -766,12 +1317,6 @@ export function GetStartedFlow({
                       <h3 className="font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
                         {currentStep.title}
                       </h3>
-                    {mode === "standard" ? (
-                      <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/64">
-                        The standard package pre-filled this step. Edit it if
-                        you want a different mix.
-                      </p>
-                    ) : null}
                     </div>
 
                     <div className="inline-grid grid-cols-[max-content] justify-items-stretch gap-3">
@@ -792,22 +1337,23 @@ export function GetStartedFlow({
                         onClick={handleNextStep}
                       type="button"
                     >
-                      {isLastStep ? "Continue to add-ons" : "Next step"}
+                      {isLastStep ? "Continue to extras" : "Next step"}
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {currentStep.options.map((option) => {
-                    const selected = currentSelectedIds.includes(option.id);
+                    const quantity = currentSelectionMap?.[option.id] ?? 0;
+                    const selected = quantity > 0;
+                    const selectedBadgeLabel =
+                      quantity > 1 ? `Selected ×${quantity}` : "Selected";
                     const optionImages = getOptionImages(option);
                     const activeImageIndex = optionImageIndexes[option.id] ?? 0;
                     const activeImage = optionImages[activeImageIndex] ?? optionImages[0];
                     const hasGallery = optionImages.length > 1;
-                    const isCutoutImage = activeImage.src.endsWith(".png");
-                    const imageFrameClasses = hasGallery
-                      ? "aspect-[4/3] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.99),rgba(244,241,235,0.94))]"
-                      : "aspect-[5/4]";
+                    const optionImagePresentation =
+                      getOptionImagePresentation(activeImage);
 
                     return (
                       <div
@@ -827,25 +1373,40 @@ export function GetStartedFlow({
                         role="button"
                         tabIndex={0}
                       >
-                        <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-paper">
-                          <div className={`relative ${imageFrameClasses}`}>
-                            <Image
-                              alt={activeImage.alt}
-                              className={
-                                hasGallery
-                                  ? isCutoutImage
-                                    ? "object-contain scale-[1.22] drop-shadow-[0_18px_30px_rgba(34,30,71,0.16)] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.3]"
-                                    : "object-contain p-1 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.08]"
-                                  : "object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.06]"
-                              }
-                              fill
+                        <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
+                          <div className={`relative ${optionImagePresentation.frameClassName}`}>
+                            {optionImagePresentation.showBackdropImage ? (
+                              <>
+                                <OptionMedia
+                                  asset={activeImage}
+                                  className={optionImagePresentation.backdropClassName}
+                                  decorative
+                                  sizes="(min-width: 1280px) 18vw, (min-width: 768px) 40vw, 100vw"
+                                />
+                                <div
+                                  aria-hidden="true"
+                                  className={
+                                    optionImagePresentation.backdropScrimClassName
+                                  }
+                                />
+                              </>
+                            ) : null}
+                            <OptionMedia
+                              asset={activeImage}
+                              className={optionImagePresentation.imageClassName}
+                              decorative
                               sizes="(min-width: 1280px) 18vw, (min-width: 768px) 40vw, 100vw"
-                              src={activeImage.src}
+                              style={optionImagePresentation.imageStyle}
                             />
                           </div>
                           {selected ? (
                             <span className="absolute left-4 top-4 rounded-full border border-mehendi/10 bg-paper/88 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-mehendi backdrop-blur">
-                              Selected
+                              {selectedBadgeLabel}
+                            </span>
+                          ) : null}
+                          {isVideoAsset(activeImage) ? (
+                            <span className="absolute right-4 top-4 rounded-full border border-paper/48 bg-paper/84 px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-indigo/56 backdrop-blur">
+                              Video
                             </span>
                           ) : null}
                           {hasGallery ? (
@@ -892,14 +1453,180 @@ export function GetStartedFlow({
                           <p className="mt-2 text-[0.72rem] uppercase tracking-[0.2em] text-indigo/48">
                             {option.subtitle}
                           </p>
-                          <p className="mt-4 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
-                            {formatDailyPrice(currentStep.pricePerDay)}
-                          </p>
+                          <div
+                            className={`mt-4 flex items-center ${
+                              selected ? "justify-between gap-3" : "justify-end"
+                            }`}
+                          >
+                            {selected ? (
+                              <QuantityStepper
+                                decrementLabel={`Decrease quantity for ${option.title}`}
+                                incrementLabel={`Increase quantity for ${option.title}`}
+                                onDecrement={() =>
+                                  updateStepOptionQuantity(
+                                    currentStep.id,
+                                    option.id,
+                                    (currentQuantity) => currentQuantity - 1,
+                                  )
+                                }
+                                onIncrement={() =>
+                                  updateStepOptionQuantity(
+                                    currentStep.id,
+                                    option.id,
+                                    (currentQuantity) => currentQuantity + 1,
+                                  )
+                                }
+                                quantity={quantity}
+                              />
+                            ) : null}
+                            <span className={PRICE_PILL_CLASSES}>
+                              {formatDailyPrice(getOptionPrice(currentStep, option))}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
+
+                {selectedPreviewOption && selectedPreviewImage && selectedPreviewPresentation ? (
+                  <div className="mt-6 overflow-hidden rounded-[2.1rem] border border-ink/8 bg-[linear-gradient(180deg,rgba(245,241,234,0.58),rgba(255,255,255,0.96))] shadow-[0_30px_90px_-58px_rgba(34,30,71,0.28)]">
+                    <div className="p-4 sm:p-5">
+                      <div
+                        className={`group/selected-preview relative min-h-[18rem] overflow-hidden rounded-[1.7rem] border border-ink/8 sm:min-h-[22rem] xl:min-h-[32rem] ${selectedPreviewPresentation.previewStageClassName} ${
+                          selectedPreviewCanZoom
+                            ? previewZoomState.active
+                              ? "cursor-zoom-out"
+                              : "cursor-zoom-in"
+                            : "cursor-default"
+                        }`}
+                        onClick={selectedPreviewCanZoom ? toggleSelectedPreviewZoom : undefined}
+                        onPointerEnter={
+                          selectedPreviewCanZoom
+                            ? handleSelectedPreviewPointerEnter
+                            : undefined
+                        }
+                        onPointerLeave={handleSelectedPreviewPointerLeave}
+                        onPointerMove={
+                          selectedPreviewCanZoom ? updateSelectedPreviewZoom : undefined
+                        }
+                      >
+                        <div
+                          className={`absolute inset-0 ${selectedPreviewMotionClassName}`}
+                          key={`${selectedPreviewOption.id}-${selectedPreviewImageIndex}`}
+                        >
+                          {selectedPreviewPresentation.showBackdropImage ? (
+                            <>
+                              <OptionMedia
+                                asset={selectedPreviewImage}
+                                className="object-cover scale-[1.18] blur-3xl opacity-60"
+                                decorative
+                                sizes="(min-width: 1280px) 42vw, 100vw"
+                              />
+                              <div
+                                aria-hidden="true"
+                                className={selectedPreviewPresentation.backdropScrimClassName}
+                              />
+                            </>
+                          ) : null}
+                          <OptionMedia
+                            asset={selectedPreviewImage}
+                            className={selectedPreviewPresentation.previewImageClassName}
+                            sizes="(min-width: 1280px) 42vw, 100vw"
+                            style={selectedPreviewImageStyle}
+                            withControls={isVideoAsset(selectedPreviewImage)}
+                          />
+                        </div>
+                        {selectedPreviewCanZoom ? (
+                          <div
+                            aria-hidden="true"
+                            className={`pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-paper/48 bg-paper/82 px-3 py-2 text-indigo shadow-[0_18px_34px_-24px_rgba(34,30,71,0.36)] backdrop-blur transition-all duration-200 ${
+                              previewZoomState.hovered ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+                            }`}
+                          >
+                            <span className="inline-flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.22em] text-indigo/52">
+                              <svg
+                                aria-hidden="true"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <circle
+                                  cx="11"
+                                  cy="11"
+                                  r="5.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                />
+                                <path
+                                  d="M16 16L20 20"
+                                  stroke="currentColor"
+                                  strokeLinecap="round"
+                                  strokeWidth="1.6"
+                                />
+                                <path
+                                  d={previewZoomState.active ? "M8.5 11H13.5" : "M8.5 11H13.5M11 8.5V13.5"}
+                                  stroke="currentColor"
+                                  strokeLinecap="round"
+                                  strokeWidth="1.6"
+                                />
+                              </svg>
+                              {previewZoomState.active ? "Click to close" : "Click to zoom"}
+                            </span>
+                          </div>
+                        ) : null}
+                        {selectedPreviewHasGallery ? (
+                          <>
+                            <div
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-[linear-gradient(90deg,rgba(247,246,243,0.34),rgba(247,246,243,0))]"
+                            />
+                            <div
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-[linear-gradient(270deg,rgba(247,246,243,0.34),rgba(247,246,243,0))]"
+                            />
+                            <button
+                              aria-label={`Show previous image for ${selectedPreviewOption.title}`}
+                              className="pressable absolute left-4 top-1/2 z-10 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-paper/54 bg-paper/82 text-xl leading-none text-indigo shadow-[0_20px_42px_-24px_rgba(34,30,71,0.42)] backdrop-blur transition hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:left-5 sm:h-14 sm:w-14"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                resetSelectedPreviewZoom();
+                                cycleOptionImage(
+                                  selectedPreviewOption.id,
+                                  selectedPreviewImages.length,
+                                  -1,
+                                );
+                              }}
+                              type="button"
+                            >
+                              <span aria-hidden="true">‹</span>
+                            </button>
+                            <div className="absolute right-4 top-4 z-10 rounded-full border border-paper/48 bg-paper/82 px-3 py-1.5 text-[0.66rem] uppercase tracking-[0.22em] text-indigo/46 shadow-[0_18px_34px_-24px_rgba(34,30,71,0.36)] backdrop-blur sm:right-5 sm:top-5">
+                              {selectedPreviewImageIndex + 1} / {selectedPreviewImages.length}
+                            </div>
+                            <button
+                              aria-label={`Show next image for ${selectedPreviewOption.title}`}
+                              className="pressable absolute right-4 top-1/2 z-10 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-paper/54 bg-paper/82 text-xl leading-none text-indigo shadow-[0_20px_42px_-24px_rgba(34,30,71,0.42)] backdrop-blur transition hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:right-5 sm:h-14 sm:w-14"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                resetSelectedPreviewZoom();
+                                cycleOptionImage(
+                                  selectedPreviewOption.id,
+                                  selectedPreviewImages.length,
+                                  1,
+                                );
+                              }}
+                              type="button"
+                            >
+                              <span aria-hidden="true">›</span>
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </section>
             )}
           </div>

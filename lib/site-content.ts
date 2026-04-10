@@ -16,6 +16,21 @@ type MediaAsset = {
   alt: string;
   width: number;
   height: number;
+  kind?: "image" | "video";
+  poster?: string;
+  presentation?: {
+    fit?: "contain" | "cover";
+    frameTone?: "soft" | "light" | "dark";
+    subjectStyle?: "default" | "cutout";
+    objectPosition?: string;
+    scale?: number;
+    hoverScale?: number;
+    previewScale?: number;
+    translateX?: string;
+    translateY?: string;
+    previewTranslateX?: string;
+    previewTranslateY?: string;
+  };
 };
 
 type Metric = {
@@ -50,6 +65,7 @@ export type CustomizeOption = {
   title: string;
   subtitle: string;
   selectionSummary: string;
+  pricePerDay?: number;
   image: MediaAsset;
   gallery?: MediaAsset[];
 };
@@ -96,7 +112,7 @@ export type SiteConfig = {
 
 export const siteConfig = {
   businessName: "Balle Balle",
-  serviceLabel: "Editorial Dholki Rental",
+  serviceLabel: "Dholki Rental Simplified",
   productName: "Signature Dholki Package",
   pickupArea: "60-34 60th Drive, Maspeth, NY 11378",
   navItems: [
@@ -204,7 +220,7 @@ export const siteConfig = {
   },
   pricingPlaceholder: {
     amount: "$425",
-    note: "Weekend rental placeholder. Replace with your live pricing, deposit, and add-on rules.",
+    note: "Weekend rental placeholder. Replace with your live pricing, deposit, and extras rules.",
   },
   includedItems: [
     "Dholki focal table with layered ground textiles",
@@ -248,7 +264,7 @@ export const bundlePaths: BundlePath[] = [
     bullets: [
       "Work through the setup one layer at a time",
       "Choose only what belongs in your package",
-      "Optional add-ons stay available inside the same flow",
+      "Optional extras stay available inside the same flow",
     ],
   },
   {
@@ -274,106 +290,222 @@ export const customizeSteps: CustomizeStep[] = [
     options: [
       {
         id: "single-ivory",
-        title: "Ivory embroidered dhol",
-        subtitle: "Textural and ornate",
+        title: "Ivory embroidered",
+        subtitle: "Large premium dhol",
         selectionSummary:
-          "You are selecting an ivory embroidered dhol with denser detail and a more heirloom feel.",
+          "You are selecting an ivory embroidered dhol with larger premium proportions and a more heirloom feel.",
+        pricePerDay: 30,
         image: {
-          src: "/product-pictures/dhol-1/il_794xN.7804220742_8o4u-Photoroom.png",
+          src: "/product-pictures/dhol-1/Dhol1A-Photoroom.png",
           alt: "Cutout view of the ivory embroidered dhol rental option.",
-          width: 794,
-          height: 332,
+          width: 1140,
+          height: 477,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 1.24,
+            hoverScale: 1.28,
+            previewScale: 1.1,
+            translateX: "3.5%",
+            previewTranslateX: "3%",
+          },
         },
         gallery: [
           {
-            src: "/product-pictures/dhol-1/il_794xN.7804220742_8o4u-Photoroom.png",
+            src: "/product-pictures/dhol-1/Dhol1A-Photoroom.png",
             alt: "Cutout view of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
+            width: 1140,
+            height: 477,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.24,
+              hoverScale: 1.28,
+              previewScale: 1.1,
+              translateX: "3.5%",
+              previewTranslateX: "3%",
+            },
           },
           {
-            src: "/product-pictures/dhol-1/il_794xN.7804220742_8o4u.jpg",
-            alt: "Front angle of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
+            src: "/product-pictures/dhol-1/Dhol1B-Photoroom.png",
+            alt: "Alternate cutout view of the ivory embroidered dhol rental option.",
+            width: 1140,
+            height: 477,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.22,
+              hoverScale: 1.26,
+              previewScale: 1.08,
+              translateX: "1.5%",
+              previewTranslateX: "1%",
+            },
           },
           {
-            src: "/product-pictures/dhol-1/il_794xN.7804222120_ng5j.jpg",
-            alt: "Alternate angle of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
+            src: "/product-pictures/dhol-1/Dhol1C-Photoroom.png",
+            alt: "Detail cutout view of the ivory embroidered dhol rental option.",
+            width: 1140,
+            height: 477,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.2,
+              hoverScale: 1.24,
+              previewScale: 1.08,
+              translateX: "2.5%",
+              previewTranslateX: "2%",
+            },
           },
           {
-            src: "/product-pictures/dhol-1/il_794xN.7804220178_1c1c.avif",
-            alt: "Detail view of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
+            src: "/product-pictures/dhol-1/Dhol1Vid.mp4",
+            alt: "Video view of the ivory embroidered dhol rental option.",
+            width: 1280,
+            height: 720,
+            kind: "video",
+            poster: "/product-pictures/dhol-1/Dhol1A-Photoroom.png",
+            presentation: {
+              frameTone: "light",
+              fit: "cover",
+              scale: 1.08,
+              hoverScale: 1.12,
+              previewScale: 1.08,
+            },
           },
         ],
       },
       {
         id: "double-mixed",
-        title: "Mirror tassel dhol",
-        subtitle: "Colorful and celebratory",
+        title: "Royal blue",
+        subtitle: "Large velvet dhol",
         selectionSummary:
-          "You are selecting a brighter mirror-led dhol with tassel accents for a more celebratory focal layer.",
+          "You are selecting a royal blue dhol with a larger velvet body for a richer focal layer.",
+        pricePerDay: 20,
         image: {
-          src: "/product-pictures/dhol-2/il_794xN.4031675348_rx8h.avif",
-          alt: "Front view of the mirror tassel dhol rental option.",
-          width: 794,
-          height: 1059,
+          src: "/product-pictures/dhol-2/Dhol2A-Photoroom.png",
+          alt: "Front view of the royal blue dhol rental option.",
+          width: 1140,
+          height: 760,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 1.12,
+            hoverScale: 1.16,
+            previewScale: 1.04,
+          },
         },
         gallery: [
           {
-            src: "/product-pictures/dhol-2/il_794xN.4031675348_rx8h.avif",
-            alt: "Front view of the mirror tassel dhol rental option.",
-            width: 794,
-            height: 1059,
+            src: "/product-pictures/dhol-2/Dhol2A-Photoroom.png",
+            alt: "Front view of the royal blue dhol rental option.",
+            width: 1140,
+            height: 760,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.12,
+              hoverScale: 1.16,
+              previewScale: 1.04,
+            },
           },
           {
-            src: "/product-pictures/dhol-2/il_794xN.4040727484_1pul.avif",
-            alt: "Alternate angle of the mirror tassel dhol rental option.",
-            width: 794,
-            height: 1025,
+            src: "/product-pictures/dhol-2/Dhol2B-Photoroom.png",
+            alt: "Alternate angle of the royal blue dhol rental option.",
+            width: 1140,
+            height: 760,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.1,
+              hoverScale: 1.14,
+              previewScale: 1.03,
+            },
+          },
+          {
+            src: "/product-pictures/dhol-2/Dhol2C-Photoroom.png",
+            alt: "Detail view of the royal blue dhol rental option.",
+            width: 1140,
+            height: 760,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.1,
+              hoverScale: 1.14,
+              previewScale: 1.03,
+            },
           },
         ],
       },
       {
         id: "mirror-festival",
-        title: "Royal blue dhol",
-        subtitle: "Bold and polished",
+        title: "Wooden multicolored",
+        subtitle: "Small dhol (7.5 x 5 inches)",
         selectionSummary:
-          "You are selecting a royal blue dhol with polished trim for a cleaner, richer contrast.",
+          "You are selecting a small wooden multicolored dhol for a more compact accent.",
+        pricePerDay: 8,
         image: {
-          src: "/product-pictures/dhol-3/il_794xN.7869430494_fkbg-Photoroom.png",
-          alt: "Cutout view of the royal blue dhol rental option.",
-          width: 794,
-          height: 529,
+          src: "/product-pictures/dhol-3/Dhol3A-Photoroom.png",
+          alt: "Cutout view of the wooden multicolored dhol rental option.",
+          width: 1140,
+          height: 1140,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 0.88,
+            hoverScale: 0.91,
+            previewScale: 0.92,
+          },
         },
         gallery: [
           {
-            src: "/product-pictures/dhol-3/il_794xN.7869430494_fkbg-Photoroom.png",
-            alt: "Cutout view of the royal blue dhol rental option.",
-            width: 794,
-            height: 529,
+            src: "/product-pictures/dhol-3/Dhol3A-Photoroom.png",
+            alt: "Cutout view of the wooden multicolored dhol rental option.",
+            width: 1140,
+            height: 1140,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 0.88,
+              hoverScale: 0.91,
+              previewScale: 0.92,
+            },
           },
           {
-            src: "/product-pictures/dhol-3/il_794xN.7869430524_cvk7.webp",
-            alt: "Front view of the royal blue dhol rental option.",
-            width: 794,
-            height: 529,
+            src: "/product-pictures/dhol-3/Dhol3B-Photoroom.png",
+            alt: "Front view of the wooden multicolored dhol rental option.",
+            width: 1140,
+            height: 1140,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 0.9,
+              hoverScale: 0.93,
+              previewScale: 0.94,
+            },
           },
           {
-            src: "/product-pictures/dhol-3/il_794xN.7869430494_fkbg.avif",
-            alt: "Alternate angle of the royal blue dhol rental option.",
-            width: 794,
-            height: 529,
-          },
-          {
-            src: "/product-pictures/dhol-3/il_794xN.7917383837_quy8.avif",
-            alt: "Detail view of the royal blue dhol rental option.",
-            width: 794,
-            height: 529,
+            src: "/product-pictures/dhol-3/Dhol3C-Photoroom.png",
+            alt: "Alternate angle of the wooden multicolored dhol rental option.",
+            width: 1140,
+            height: 1140,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 0.86,
+              hoverScale: 0.9,
+              previewScale: 0.9,
+            },
           },
         ],
       },
@@ -383,33 +515,112 @@ export const customizeSteps: CustomizeStep[] = [
     id: "backdrop-stand",
     title: "Backdrop stand",
     skippedSummary: "You are leaving the setup open without a backdrop stand.",
-    pricePerDay: 40,
+    pricePerDay: 30,
     options: [
       {
         id: "arched-stand",
-        title: "Arched backdrop stand",
-        subtitle: "Soft and framing",
+        title: "Black backdrop",
+        subtitle: "10 feet by 10 feet backdrop",
         selectionSummary:
-          "You are adding an arched backdrop stand to frame the focal moment.",
+          "You are adding a black backdrop frame in a 10 feet by 10 feet size for a cleaner structural outline.",
         image: {
-          src: "/placeholders/customizer/backdrop-stand.svg",
-          alt: "Placeholder image showing a backdrop stand option.",
-          width: 880,
-          height: 760,
+          src: "/product-pictures/customizer/backdrop-stand/straight-backdrop-frame/Backdrop1A-Photoroom.png",
+          alt: "Cutout view of the straight backdrop frame option.",
+          width: 1140,
+          height: 1140,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 0.98,
+            hoverScale: 1.02,
+          },
         },
+        gallery: [
+          {
+            src: "/product-pictures/customizer/backdrop-stand/straight-backdrop-frame/Backdrop1A-Photoroom.png",
+            alt: "Cutout view of the straight backdrop frame option.",
+            width: 1140,
+            height: 1140,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 0.98,
+              hoverScale: 1.02,
+            },
+          },
+          {
+            src: "/product-pictures/customizer/backdrop-stand/straight-backdrop-frame/Backdrop1B.png",
+            alt: "Alternate view of the straight backdrop frame option.",
+            width: 1140,
+            height: 1140,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 0.9,
+              hoverScale: 0.94,
+            },
+          },
+          {
+            src: "/product-pictures/customizer/backdrop-stand/straight-backdrop-frame/Backdrop1C-Photoroom.png",
+            alt: "Detail view of the straight backdrop frame base.",
+            width: 1140,
+            height: 1140,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+            },
+          },
+        ],
       },
       {
         id: "straight-frame",
-        title: "Straight backdrop frame",
-        subtitle: "Clean and structured",
+        title: "Silver backdrop",
+        subtitle: "10 feet by 10 feet backdrop",
         selectionSummary:
-          "You are adding a straight backdrop frame for a cleaner, more structured line.",
+          "You are adding a silver backdrop frame in a 10 feet by 10 feet size for a softer, more finished backdrop layer.",
         image: {
-          src: "/placeholders/customizer/backdrop-stand.svg",
-          alt: "Placeholder image showing a backdrop stand option.",
-          width: 880,
-          height: 760,
+          src: "/product-pictures/customizer/backdrop-stand/draped-backdrop-frame/Backdrop2A-Photoroom.png",
+          alt: "Cutout view of the draped backdrop frame option.",
+          width: 1481,
+          height: 1412,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 1.02,
+            hoverScale: 1.05,
+          },
         },
+        gallery: [
+          {
+            src: "/product-pictures/customizer/backdrop-stand/draped-backdrop-frame/Backdrop2A-Photoroom.png",
+            alt: "Cutout view of the draped backdrop frame option.",
+            width: 1481,
+            height: 1412,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.02,
+              hoverScale: 1.05,
+            },
+          },
+          {
+            src: "/product-pictures/customizer/backdrop-stand/draped-backdrop-frame/Backdrop2C-Photoroom.png",
+            alt: "Setup detail view of the draped backdrop frame option.",
+            width: 1454,
+            height: 1453,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+            },
+          },
+        ],
       },
     ],
   },
@@ -417,7 +628,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "backdrop-garlands",
     title: "Garlands",
     skippedSummary: "You are leaving the backdrop without floral garlands.",
-    pricePerDay: 20,
+    pricePerDay: 10,
     options: [
       {
         id: "minimal-garlands",
@@ -451,7 +662,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "colorful-curtains",
     title: "Curtains",
     skippedSummary: "You are leaving the backdrop without curtain layering.",
-    pricePerDay: 35,
+    pricePerDay: 10,
     options: [
       {
         id: "rose-drape",
@@ -485,7 +696,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "neon-sign",
     title: "Neon sign",
     skippedSummary: "You are keeping the setup free of neon signage for now.",
-    pricePerDay: 45,
+    pricePerDay: 0,
     options: [
       {
         id: "monogram-neon",
@@ -519,7 +730,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "umbrella",
     title: "Umbrella",
     skippedSummary: "You are skipping the umbrella accent for a cleaner silhouette.",
-    pricePerDay: 20,
+    pricePerDay: 10,
     options: [
       {
         id: "mehendi-fringe",
@@ -566,7 +777,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "thaal",
     title: "Thaal",
     skippedSummary: "You are leaving the thaal styling out for a simpler package.",
-    pricePerDay: 20,
+    pricePerDay: 10,
     options: [
       {
         id: "brass-floral",
@@ -613,33 +824,170 @@ export const customizeSteps: CustomizeStep[] = [
     id: "bench",
     title: "Bench",
     skippedSummary: "You are keeping the setup floor-led without a bench.",
-    pricePerDay: 45,
+    pricePerDay: 20,
     options: [
       {
         id: "cane-bench",
-        title: "Cane bench",
-        subtitle: "Airy and classic",
+        title: "Boucle bench",
+        subtitle: "Rounded and plush",
         selectionSummary:
-          "You are adding a cane bench to anchor the seating pocket with a lighter frame.",
+          "You are adding a boucle bench to anchor the seating pocket with a softer, more plush silhouette.",
         image: {
-          src: "/placeholders/customizer/bench.svg",
-          alt: "Placeholder image showing a styled bench option.",
-          width: 880,
-          height: 760,
+          src: "/product-pictures/customizer/bench/cane-bench/Bench1A-Photoroom.png",
+          alt: "Cutout view of the boucle bench option.",
+          width: 1500,
+          height: 831,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 1.04,
+            hoverScale: 1.08,
+            previewScale: 1,
+          },
         },
+        gallery: [
+          {
+            src: "/product-pictures/customizer/bench/cane-bench/Bench1A-Photoroom.png",
+            alt: "Cutout view of the boucle bench option.",
+            width: 1500,
+            height: 831,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.04,
+              hoverScale: 1.08,
+              previewScale: 1,
+            },
+          },
+          {
+            src: "/product-pictures/customizer/bench/cane-bench/Bench1B.jpg",
+            alt: "Dimension view of the boucle bench option.",
+            width: 1500,
+            height: 1152,
+          },
+          {
+            src: "/product-pictures/customizer/bench/cane-bench/Bench1C.jpg",
+            alt: "Detail view of the boucle bench upholstery.",
+            width: 1500,
+            height: 1500,
+          },
+        ],
       },
       {
         id: "tufted-bench",
-        title: "Tufted bench",
-        subtitle: "Soft and dressed-up",
+        title: "Cream bench",
+        subtitle: "Tailored and polished",
         selectionSummary:
-          "You are adding an upholstered bench for a softer front-facing seat.",
+          "You are adding a cream bench with slimmer legs for a cleaner, more tailored front-facing seat.",
         image: {
-          src: "/placeholders/customizer/bench.svg",
-          alt: "Placeholder image showing a styled bench option.",
-          width: 880,
-          height: 760,
+          src: "/product-pictures/customizer/bench/tufted-bench/Bench2A-Photoroom.png",
+          alt: "Cutout view of the cream bench option.",
+          width: 1500,
+          height: 653,
+          presentation: {
+            fit: "contain",
+            frameTone: "soft",
+            subjectStyle: "cutout",
+            scale: 1.08,
+            hoverScale: 1.12,
+            previewScale: 1.02,
+          },
         },
+        gallery: [
+          {
+            src: "/product-pictures/customizer/bench/tufted-bench/Bench2A-Photoroom.png",
+            alt: "Cutout view of the cream bench option.",
+            width: 1500,
+            height: 653,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.08,
+              hoverScale: 1.12,
+              previewScale: 1.02,
+            },
+          },
+          {
+            src: "/product-pictures/customizer/bench/tufted-bench/Bench2B.jpg",
+            alt: "Dimension view of the cream bench option.",
+            width: 1500,
+            height: 866,
+          },
+          {
+            src: "/product-pictures/customizer/bench/tufted-bench/Bench2C-Photoroom.png",
+            alt: "Alternate cutout view of the cream bench option.",
+            width: 1500,
+            height: 842,
+            presentation: {
+              fit: "contain",
+              frameTone: "soft",
+              subjectStyle: "cutout",
+              scale: 1.04,
+              hoverScale: 1.08,
+              previewScale: 1,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bench-cloth",
+    title: "Bench cloth",
+    skippedSummary: "You are leaving the bench uncovered without an added cloth layer.",
+    pricePerDay: 15,
+    options: [
+      {
+        id: "embroidered-bench-cloth",
+        title: "Embroidered bench cloth",
+        subtitle: "Colorful patterned drape",
+        selectionSummary:
+          "You are adding an embroidered bench cloth to bring in more pattern and color across the seating area.",
+        image: {
+          src: "/product-pictures/customizer/bench-cloth/embroidered-bench-cloth/BenchCloth1A.webp",
+          alt: "Photo showing the embroidered bench cloth option draped over a bench.",
+          width: 794,
+          height: 529,
+          presentation: {
+            fit: "contain",
+            frameTone: "light",
+          },
+        },
+        gallery: [
+          {
+            src: "/product-pictures/customizer/bench-cloth/embroidered-bench-cloth/BenchCloth1A.webp",
+            alt: "Photo showing the embroidered bench cloth option draped over a bench.",
+            width: 794,
+            height: 529,
+            presentation: {
+              fit: "contain",
+              frameTone: "light",
+            },
+          },
+          {
+            src: "/product-pictures/customizer/bench-cloth/embroidered-bench-cloth/BenchCloth1B.webp",
+            alt: "Full view of the embroidered bench cloth laid out flat.",
+            width: 1140,
+            height: 1710,
+            presentation: {
+              fit: "contain",
+              frameTone: "light",
+            },
+          },
+          {
+            src: "/product-pictures/customizer/bench-cloth/embroidered-bench-cloth/BenchCloth1C.webp",
+            alt: "Lengthwise detail view of the embroidered bench cloth.",
+            width: 1140,
+            height: 1710,
+            presentation: {
+              fit: "contain",
+              frameTone: "light",
+            },
+          },
+        ],
       },
     ],
   },
@@ -647,7 +995,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "rug",
     title: "Rug",
     skippedSummary: "You are keeping the base layer minimal without an added rug.",
-    pricePerDay: 25,
+    pricePerDay: 20,
     options: [
       {
         id: "neutral-rug",
@@ -681,7 +1029,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "floor-cushions",
     title: "Floor cushions",
     skippedSummary: "You are leaving the cushion layer out of this draft setup.",
-    pricePerDay: 30,
+    pricePerDay: 20,
     options: [
       {
         id: "six-cushions",
@@ -715,7 +1063,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "table-centerpieces",
     title: "Table centerpieces",
     skippedSummary: "You are leaving the tabletop without centerpieces for now.",
-    pricePerDay: 25,
+    pricePerDay: 10,
     options: [
       {
         id: "single-centerpiece",
@@ -749,7 +1097,7 @@ export const customizeSteps: CustomizeStep[] = [
     id: "large-props",
     title: "Large props",
     skippedSummary: "You are keeping the setup free of larger prop moments.",
-    pricePerDay: 30,
+    pricePerDay: 15,
     options: [
       {
         id: "lantern-pair",
@@ -791,7 +1139,7 @@ export const customizeAddOns: AddOnOption[] = [
     pricePerDay: 15,
     image: {
       src: "/placeholders/customizer/garlands.svg",
-      alt: "Placeholder image showing floral garland add-ons.",
+      alt: "Placeholder image showing floral garland extras.",
       width: 880,
       height: 760,
     },
@@ -805,7 +1153,7 @@ export const customizeAddOns: AddOnOption[] = [
     pricePerDay: 30,
     image: {
       src: "/placeholders/customizer/addon-signage.svg",
-      alt: "Placeholder image showing a welcome sign styling add-on.",
+      alt: "Placeholder image showing a welcome sign styling extra.",
       width: 880,
       height: 760,
     },
@@ -819,7 +1167,7 @@ export const customizeAddOns: AddOnOption[] = [
     pricePerDay: 20,
     image: {
       src: "/placeholders/customizer/addon-lanterns.svg",
-      alt: "Placeholder image showing a lantern cluster add-on.",
+      alt: "Placeholder image showing a lantern cluster extra.",
       width: 880,
       height: 760,
     },
@@ -853,6 +1201,48 @@ export const customizeAddOns: AddOnOption[] = [
     },
   },
   {
+    id: "upholstered-folding-chair",
+    title: "Upholstered folding chair",
+    subtitle: "Padded guest seating",
+    selectionSummary:
+      "You are adding upholstered folding chairs to extend guest seating with a softer, more refined finish.",
+    pricePerDay: 6,
+    image: {
+      src: "/product-pictures/customizer/chair/upholstered-folding-chair/Chair1A-Photoroom.png",
+      alt: "Cutout view of the upholstered folding chair extra.",
+      width: 1500,
+      height: 1456,
+      presentation: {
+        fit: "contain",
+        frameTone: "soft",
+        subjectStyle: "cutout",
+        scale: 0.98,
+        hoverScale: 1.02,
+      },
+    },
+  },
+  {
+    id: "white-folding-chair",
+    title: "White folding chair",
+    subtitle: "Classic event seating",
+    selectionSummary:
+      "You are adding white folding chairs to widen guest seating with a cleaner event-ready look.",
+    pricePerDay: 4,
+    image: {
+      src: "/product-pictures/customizer/chair/white-folding-chair/Chair2A.png",
+      alt: "Cutout view of the white folding chair extra.",
+      width: 1481,
+      height: 1500,
+      presentation: {
+        fit: "contain",
+        frameTone: "soft",
+        subjectStyle: "cutout",
+        scale: 0.94,
+        hoverScale: 0.98,
+      },
+    },
+  },
+  {
     id: "candle-styling",
     title: "Candle styling",
     subtitle: "Warm tabletop glow",
@@ -861,7 +1251,7 @@ export const customizeAddOns: AddOnOption[] = [
     pricePerDay: 15,
     image: {
       src: "/placeholders/customizer/addon-candle.svg",
-      alt: "Placeholder image showing candle styling add-ons.",
+      alt: "Placeholder image showing candle styling extras.",
       width: 880,
       height: 760,
     },
@@ -934,6 +1324,6 @@ export const faqItems = [
   {
     question: "Can customers customize the palette?",
     answer:
-      "The future flow should support styling notes and add-ons. In this phase, the page simply shows where those conversations belong.",
+      "The future flow should support styling notes and extras. In this phase, the page simply shows where those conversations belong.",
   },
 ];

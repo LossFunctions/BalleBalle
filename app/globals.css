@@ -102,6 +102,30 @@ summary::-webkit-details-marker {
   }
 }
 
+@keyframes selected-preview-shift-next {
+  from {
+    opacity: 0.18;
+    transform: translateX(24px) scale(0.988);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes selected-preview-shift-prev {
+  from {
+    opacity: 0.18;
+    transform: translateX(-24px) scale(0.988);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
 .hero-sequence > * {
   opacity: 0;
   animation: hero-enter 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -171,6 +195,14 @@ summary::-webkit-details-marker {
 
 .flow-enter {
   animation: flow-enter 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.selected-preview-shift-next {
+  animation: selected-preview-shift-next 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.selected-preview-shift-prev {
+  animation: selected-preview-shift-prev 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tailored-scroll {
@@ -245,6 +277,11 @@ summary::-webkit-details-marker {
   }
 
   .flow-enter {
+    animation: none;
+  }
+
+  .selected-preview-shift-next,
+  .selected-preview-shift-prev {
     animation: none;
   }
 
