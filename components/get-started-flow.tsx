@@ -632,6 +632,8 @@ export function GetStartedFlow({
   const addOnsStatus =
     selectedAddOnsCount > 0 ? SIDEBAR_ADDED_STATUS : "Pending";
   const currentProgressIndex = showAddOns ? null : currentStepIndex;
+  const progressStepCount = customizeSteps.length;
+  const useCompactProgressTrack = progressStepCount >= 11;
   const modeHelperCopy =
     mode === "standard"
       ? "Items are pre-selected based on a recommended standard setup."
@@ -1230,15 +1232,25 @@ export function GetStartedFlow({
                   </div>
 
                   <div className="mt-8 space-y-3">
-                    <div className="w-full overflow-hidden rounded-full border border-indigo/10 bg-paper/94 px-5 py-3 shadow-[0_20px_40px_-34px_rgba(34,30,71,0.35)] backdrop-blur">
+                    <div
+                      className={`w-full overflow-hidden rounded-full border border-indigo/10 bg-paper/94 py-3 shadow-[0_20px_40px_-34px_rgba(34,30,71,0.35)] backdrop-blur ${
+                        useCompactProgressTrack ? "px-3 sm:px-4" : "px-5"
+                      }`}
+                    >
                       <div className="flex items-center">
                         {customizeSteps.map((step, index) => {
                           const dotClasses =
                             index < completedCount
-                              ? "h-2.5 w-2.5 border-mehendi bg-mehendi shadow-[0_0_0_4px_rgba(11,123,76,0.08)] sm:h-3 sm:w-3"
+                              ? useCompactProgressTrack
+                                ? "h-2 w-2 border-mehendi bg-mehendi shadow-[0_0_0_3px_rgba(11,123,76,0.08)] sm:h-2.5 sm:w-2.5 sm:shadow-[0_0_0_4px_rgba(11,123,76,0.08)]"
+                                : "h-2.5 w-2.5 border-mehendi bg-mehendi shadow-[0_0_0_4px_rgba(11,123,76,0.08)] sm:h-3 sm:w-3"
                               : index === currentProgressIndex
-                                ? "h-2.5 w-2.5 border-indigo/24 bg-paper shadow-[0_0_0_5px_rgba(34,30,71,0.07)] after:absolute after:left-1/2 after:top-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-indigo after:content-[''] sm:h-3 sm:w-3 sm:after:h-1.5 sm:after:w-1.5"
-                                : "h-2 w-2 border-indigo/12 bg-paper sm:h-2.5 sm:w-2.5";
+                                ? useCompactProgressTrack
+                                  ? "h-2 w-2 border-indigo/24 bg-paper shadow-[0_0_0_4px_rgba(34,30,71,0.07)] after:absolute after:left-1/2 after:top-1/2 after:h-[0.3rem] after:w-[0.3rem] after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-indigo after:content-[''] sm:h-2.5 sm:w-2.5 sm:shadow-[0_0_0_5px_rgba(34,30,71,0.07)] sm:after:h-[0.34rem] sm:after:w-[0.34rem]"
+                                  : "h-2.5 w-2.5 border-indigo/24 bg-paper shadow-[0_0_0_5px_rgba(34,30,71,0.07)] after:absolute after:left-1/2 after:top-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-indigo after:content-[''] sm:h-3 sm:w-3 sm:after:h-1.5 sm:after:w-1.5"
+                                : useCompactProgressTrack
+                                  ? "h-1.5 w-1.5 border-indigo/12 bg-paper sm:h-2 sm:w-2"
+                                  : "h-2 w-2 border-indigo/12 bg-paper sm:h-2.5 sm:w-2.5";
 
                           const segmentClasses =
                             index < completedCount - 1
@@ -1248,9 +1260,9 @@ export function GetStartedFlow({
                           return (
                             <div
                               className={
-                                index === customizeSteps.length - 1
-                                  ? ""
-                                  : "flex flex-1 items-center"
+                                index === lastStepIndex
+                                  ? "flex shrink-0 items-center"
+                                  : "flex min-w-0 flex-1 items-center"
                               }
                               key={`sidebar-progress-${step.id}`}
                             >
@@ -1261,7 +1273,11 @@ export function GetStartedFlow({
                               {index < customizeSteps.length - 1 ? (
                                 <span
                                   aria-hidden="true"
-                                  className={`mx-0.5 h-[0.14rem] flex-1 rounded-full transition-all duration-300 sm:mx-1 sm:h-[0.16rem] ${segmentClasses}`}
+                                  className={`h-[0.14rem] flex-1 rounded-full transition-all duration-300 sm:h-[0.16rem] ${
+                                    useCompactProgressTrack
+                                      ? "mx-[0.18rem] sm:mx-0.75"
+                                      : "mx-0.5 sm:mx-1"
+                                  } ${segmentClasses}`}
                                 />
                               ) : null}
                             </div>
