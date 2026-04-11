@@ -43,6 +43,8 @@ type FlowSnapshot = {
 
 const FLOW_SCROLL_OFFSET = 112;
 const SIDEBAR_ADDED_STATUS = "Added";
+const EVENT_PRICING_POLICY =
+  "Each event rate covers a 4-day rental window total, including pickup or delivery and return by day 4. Late returns are $150 per extra day.";
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -314,14 +316,17 @@ const getSelectionTotal = (step: CustomizeStep, selection: StepSelection) => {
   }, 0);
 };
 
-const formatDailyPrice = (amount: number) =>
-  `${currencyFormatter.format(amount)}/day`;
+const formatEventPrice = (amount: number) =>
+  `${currencyFormatter.format(amount)}/event`;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
 const getDefaultOptionImageFit = (image: CustomizeOption["image"]) =>
   image.src.startsWith("/product-pictures/") ? "contain" : "cover";
+
+const isProductPictureAsset = (asset: CustomizeOption["image"]) =>
+  asset.src.startsWith("/product-pictures/");
 
 const getDefaultOptionFrameTone = (image: CustomizeOption["image"]) => {
   if (image.src.endsWith(".png")) {
@@ -503,6 +508,17 @@ const getPreferredOptionImageIndex = (
   return selectedVariant?.imageIndex ?? 0;
 };
 
+const getOptionImages = (option: CustomizeOption) => {
+  const galleryImages =
+    option.gallery?.filter((asset) => isProductPictureAsset(asset)) ?? [];
+
+  if (galleryImages.length > 0) {
+    return galleryImages;
+  }
+
+  return [option.image];
+};
+
 type GetStartedFlowProps = {
   initialMode?: BundlePath["id"];
 };
@@ -543,6 +559,7 @@ export function GetStartedFlow({
     x: 0.5,
     y: 0.5,
   });
+  const [showEventPricingPolicy, setShowEventPricingPolicy] = useState(false);
   const [scrollKey, setScrollKey] = useState(0);
   const flowPanelRef = useRef<HTMLDivElement | null>(null);
   const addOnsRef = useRef<HTMLDivElement | null>(null);
@@ -555,8 +572,6 @@ export function GetStartedFlow({
   );
 
   const hasStandardPath = bundlePaths.some((path) => path.id === "standard");
-  const getOptionImages = (option: CustomizeOption) =>
-    option.gallery && option.gallery.length > 0 ? option.gallery : [option.image];
 
   useEffect(() => {
     if (!pendingScrollTargetRef.current) {
@@ -853,7 +868,7 @@ export function GetStartedFlow({
           return quantity > 1 ? `${option.title} ×${quantity}` : option.title;
         })
         .join(", "),
-      priceLine: `${selectedCount} selected • ${formatDailyPrice(total)}`,
+      priceLine: `${selectedCount} selected • ${formatEventPrice(total)}`,
     };
   };
 
@@ -1163,9 +1178,53 @@ export function GetStartedFlow({
                     </p>
                     <div className="mt-2">
                       <div>
-                        <p className="font-display text-[3.45rem] leading-[0.9] tracking-[-0.06em] text-indigo">
-                          {formatDailyPrice(subtotal)}
+                        <p className="whitespace-nowrap font-display text-[2.78rem] leading-[0.9] tracking-[-0.06em] text-indigo sm:text-[2.92rem]">
+                          {currencyFormatter.format(subtotal)}
+                          <span className="relative inline-block">
+                            /event
+                            <button
+                              aria-controls="event-pricing-policy"
+                              aria-expanded={showEventPricingPolicy}
+                              aria-label="Show event pricing policy"
+                              className="absolute -right-4 top-2 inline-flex h-4 w-4 items-center justify-center text-indigo/32 transition hover:text-indigo/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                              onClick={() =>
+                                setShowEventPricingPolicy((currentValue) => !currentValue)
+                              }
+                              type="button"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                viewBox="0 0 16 16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <circle
+                                  cx="8"
+                                  cy="8"
+                                  r="5.4"
+                                  stroke="currentColor"
+                                  strokeWidth="1.1"
+                                />
+                                <circle cx="8" cy="5.15" r="0.7" fill="currentColor" />
+                                <path
+                                  d="M8 7.1V10.8"
+                                  stroke="currentColor"
+                                  strokeLinecap="round"
+                                  strokeWidth="1.1"
+                                />
+                              </svg>
+                            </button>
+                          </span>
                         </p>
+                        {showEventPricingPolicy ? (
+                          <div
+                            className="mt-3 rounded-[1.15rem] border border-indigo/10 bg-cream px-3 py-3 text-sm leading-6 text-ink/66"
+                            id="event-pricing-policy"
+                          >
+                            {EVENT_PRICING_POLICY}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1293,7 +1352,7 @@ export function GetStartedFlow({
                         </p>
                         {selectedAddOnsCount > 0 ? (
                           <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
-                            {selectedAddOnsCount} selected • {formatDailyPrice(addOnsSubtotal)}
+                            {selectedAddOnsCount} selected • {formatEventPrice(addOnsSubtotal)}
                           </p>
                         ) : null}
                       </div>
@@ -1351,7 +1410,7 @@ export function GetStartedFlow({
                         Subtotal
                       </p>
                       <p className="mt-2 font-display text-3xl leading-none text-indigo">
-                        {formatDailyPrice(addOnsSubtotal)}
+                        {formatEventPrice(addOnsSubtotal)}
                       </p>
                     </div>
                   </div>
@@ -1445,7 +1504,7 @@ export function GetStartedFlow({
                               />
                             ) : null}
                             <span className={PRICE_PILL_CLASSES}>
-                              {formatDailyPrice(option.pricePerDay)}
+                              {formatEventPrice(option.pricePerDay)}
                             </span>
                           </div>
                         </div>
@@ -1788,7 +1847,7 @@ export function GetStartedFlow({
                                   </div>
                                 )}
                                 <span className={PRICE_PILL_CLASSES}>
-                                  {formatDailyPrice(getOptionPrice(currentStep, option))}
+                                  {formatEventPrice(getOptionPrice(currentStep, option))}
                                 </span>
                               </div>
                             </>
@@ -1820,7 +1879,7 @@ export function GetStartedFlow({
                                 />
                               ) : null}
                               <span className={PRICE_PILL_CLASSES}>
-                                {formatDailyPrice(getOptionPrice(currentStep, option))}
+                                {formatEventPrice(getOptionPrice(currentStep, option))}
                               </span>
                             </div>
                           )}

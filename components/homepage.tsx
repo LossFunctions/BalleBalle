@@ -468,11 +468,11 @@ export function Homepage() {
                 FAQ
               </p>
               <h2 className="mt-3 font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
-                Clear now, extensible later.
+                Questions, answered.
               </h2>
               <p className="mt-4 text-sm leading-7 text-ink/68">
-                The answers stay concise, premium in tone, and honest about what
-                is still placeholder territory.
+                Pricing, timing, pickup, delivery, and customization policies
+                in one place.
               </p>
             </div>
 
@@ -490,9 +490,26 @@ export function Homepage() {
                       +
                     </span>
                   </summary>
-                  <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/70">
-                    {item.answer}
-                  </p>
+                  <div className="mt-4 max-w-3xl space-y-4 text-sm leading-7 text-ink/70">
+                    {item.answer.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                    {item.links?.length ? (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {item.links.map((link) => (
+                          <a
+                            className="inline-flex items-center rounded-full border border-indigo/12 bg-cream px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-indigo/64 transition hover:border-indigo/20 hover:bg-paper"
+                            href={link.href}
+                            key={link.href}
+                            rel={link.external ? "noreferrer" : undefined}
+                            target={link.external ? "_blank" : undefined}
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </details>
               ))}
             </div>

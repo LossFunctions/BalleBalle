@@ -97,6 +97,12 @@ export type AddOnOption = {
   image: MediaAsset;
 };
 
+export type FAQItem = {
+  question: string;
+  answer: string[];
+  links?: ContactLink[];
+};
+
 export type SiteConfig = {
   businessName: string;
   serviceLabel: string;
@@ -371,40 +377,6 @@ export const customizeSteps: CustomizeStep[] = [
             },
           },
           {
-            src: "/product-pictures/dhol-1/il_794xN.7804220178_1c1c.avif",
-            alt: "Photo view of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
-          },
-          {
-            src: "/product-pictures/dhol-1/il_794xN.7804220742_8o4u-Photoroom.png",
-            alt: "Alternate cutout view of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
-            presentation: {
-              fit: "contain",
-              frameTone: "soft",
-              subjectStyle: "cutout",
-              scale: 1.22,
-              hoverScale: 1.26,
-              previewScale: 1.08,
-              translateX: "2.5%",
-              previewTranslateX: "2%",
-            },
-          },
-          {
-            src: "/product-pictures/dhol-1/il_794xN.7804220742_8o4u.jpg",
-            alt: "Photo angle of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
-          },
-          {
-            src: "/product-pictures/dhol-1/il_794xN.7804222120_ng5j.jpg",
-            alt: "Photo detail of the ivory embroidered dhol rental option.",
-            width: 794,
-            height: 332,
-          },
-          {
             src: "/product-pictures/dhol-1/Dhol1Vid.mp4",
             alt: "Video view of the ivory embroidered dhol rental option.",
             width: 1280,
@@ -485,18 +457,6 @@ export const customizeSteps: CustomizeStep[] = [
               previewScale: 1.03,
             },
           },
-          {
-            src: "/product-pictures/dhol-2/il_794xN.4031675348_rx8h.avif",
-            alt: "Photo view of the royal blue dhol rental option.",
-            width: 794,
-            height: 1059,
-          },
-          {
-            src: "/product-pictures/dhol-2/il_794xN.4040727484_1pul.avif",
-            alt: "Alternate photo view of the royal blue dhol rental option.",
-            width: 794,
-            height: 1025,
-          },
         ],
       },
       {
@@ -562,38 +522,6 @@ export const customizeSteps: CustomizeStep[] = [
               hoverScale: 0.9,
               previewScale: 0.9,
             },
-          },
-          {
-            src: "/product-pictures/dhol-3/il_794xN.7869430494_fkbg-Photoroom.png",
-            alt: "Cutout view of the wooden multicolored dhol rental option.",
-            width: 794,
-            height: 529,
-            presentation: {
-              fit: "contain",
-              frameTone: "soft",
-              subjectStyle: "cutout",
-              scale: 0.9,
-              hoverScale: 0.94,
-              previewScale: 0.94,
-            },
-          },
-          {
-            src: "/product-pictures/dhol-3/il_794xN.7869430494_fkbg.avif",
-            alt: "Photo view of the wooden multicolored dhol rental option.",
-            width: 794,
-            height: 529,
-          },
-          {
-            src: "/product-pictures/dhol-3/il_794xN.7869430524_cvk7.webp",
-            alt: "Alternate photo view of the wooden multicolored dhol rental option.",
-            width: 794,
-            height: 529,
-          },
-          {
-            src: "/product-pictures/dhol-3/il_794xN.7917383837_quy8.avif",
-            alt: "Photo detail view of the wooden multicolored dhol rental option.",
-            width: 794,
-            height: 529,
           },
         ],
       },
@@ -1727,30 +1655,47 @@ export const galleryItems = [
   },
 ];
 
-export const faqItems = [
+export const faqItems: FAQItem[] = [
   {
-    question: "What exactly is being rented here?",
-    answer:
-      "This prototype presents a styled dholki setup with low seating, textiles, tray accents, and finishing details. Replace the list with your exact inventory before launch.",
+    question: "How does pricing work?",
+    answer: [
+      "You can pick either the standard pre-packaged Dholki package, which includes a 20% discount, or customize your setup individually by item.",
+      "Each item has its own cost by event. An event rate covers a 4-day rental window total: up to 3 days with the items, with return due by day 4. You can also choose the quantity of each item.",
+    ],
   },
   {
     question: "Do you deliver or is it pickup only?",
-    answer:
-      "The current placeholder assumes pickup from Maspeth, Queens. Add your delivery zones, runner fees, or pickup-only policy once operations are finalized.",
+    answer: [
+      "We can accommodate both.",
+      "Pickup is at 60-34 60th Drive, Maspeth, NY 11378.",
+      "Within NYC and Long Island, delivery is available for a flat $200 fee.",
+    ],
+    links: [
+      {
+        label: "Google Maps",
+        href: "https://maps.app.goo.gl/fmsfzFiFrusxjU8s6",
+        external: true,
+      },
+    ],
   },
   {
-    question: "Is the availability shown live?",
-    answer:
-      "No. The availability card is a front-end demo with mocked states for idle, available, and unavailable outcomes.",
+    question: "When do I need to return the items?",
+    answer: [
+      "We rent items out for 4 days at a time, including the pickup or delivery date, and items must be returned by the 4th day at the latest.",
+      "If your event is on Saturday, October 3, you can pick up or receive the items on Friday, use them on Saturday, and return them by Monday. You can return them earlier if you want.",
+      "Any items returned later than 4 days incur a $150 per day late fee.",
+    ],
   },
   {
-    question: "How long is the rental window?",
-    answer:
-      "The layout implies a weekend-style handoff. Replace this answer with your actual pickup, return, late-fee, and grace-period policy.",
-  },
-  {
-    question: "Can customers customize the palette?",
-    answer:
-      "The future flow should support styling notes and extras. In this phase, the page simply shows where those conversations belong.",
+    question: "Can I customize the items I rent out?",
+    answer: [
+      "Yes. We allow full customization of your Dholki setup for further custom needs.",
+    ],
+    links: [
+      {
+        label: "umihuss@gmail.com",
+        href: "mailto:umihuss@gmail.com",
+      },
+    ],
   },
 ];
