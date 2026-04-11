@@ -1180,15 +1180,17 @@ export function GetStartedFlow({
                     </p>
                     <div className="mt-2">
                       <div>
-                        <p className="whitespace-nowrap font-display text-[2.78rem] leading-[0.9] tracking-[-0.06em] text-indigo sm:text-[2.92rem]">
-                          {currencyFormatter.format(subtotal)}
-                          <span className="relative inline-block">
+                        <p className="flex items-end whitespace-nowrap font-display leading-[0.92] tracking-[-0.05em] text-indigo">
+                          <span className="text-[2.56rem] sm:text-[2.84rem]">
+                            {currencyFormatter.format(subtotal)}
+                          </span>
+                          <span className="relative mb-[0.04em] ml-[0.04em] inline-block pr-4 text-[2.18rem] tracking-[-0.04em] sm:text-[2.46rem]">
                             /event
                             <button
                               aria-controls="event-pricing-policy"
                               aria-expanded={showEventPricingPolicy}
                               aria-label="Show event pricing policy"
-                              className="absolute -right-4 top-2 inline-flex h-4 w-4 items-center justify-center text-indigo/32 transition hover:text-indigo/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                              className="absolute right-0 top-[0.42rem] inline-flex h-3.5 w-3.5 items-center justify-center text-indigo/32 transition hover:text-indigo/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:top-[0.48rem] sm:h-4 sm:w-4"
                               onClick={() =>
                                 setShowEventPricingPolicy((currentValue) => !currentValue)
                               }
@@ -1196,7 +1198,7 @@ export function GetStartedFlow({
                             >
                               <svg
                                 aria-hidden="true"
-                                className="h-3.5 w-3.5"
+                                className="h-3 w-3 sm:h-3.5 sm:w-3.5"
                                 fill="none"
                                 viewBox="0 0 16 16"
                                 xmlns="http://www.w3.org/2000/svg"

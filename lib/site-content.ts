@@ -100,6 +100,10 @@ export type AddOnOption = {
 export type FAQItem = {
   question: string;
   answer: string[];
+  answerRowLinks?: Array<{
+    answerIndex: number;
+    link: ContactLink;
+  }>;
   links?: ContactLink[];
 };
 
@@ -1670,11 +1674,14 @@ export const faqItems: FAQItem[] = [
       "Pickup is at 60-34 60th Drive, Maspeth, NY 11378.",
       "Within NYC and Long Island, delivery is available for a flat $200 fee.",
     ],
-    links: [
+    answerRowLinks: [
       {
-        label: "Google Maps",
-        href: "https://maps.app.goo.gl/fmsfzFiFrusxjU8s6",
-        external: true,
+        answerIndex: 1,
+        link: {
+          label: "Google Maps Link",
+          href: "https://maps.app.goo.gl/fmsfzFiFrusxjU8s6",
+          external: true,
+        },
       },
     ],
   },
@@ -1689,7 +1696,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "Can I customize the items I rent out?",
     answer: [
-      "Yes. We allow full customization of your Dholki setup for further custom needs.",
+      "Yes. We allow full customization of your Dholki setup, for any additional questions or needs reach out to us below.",
     ],
     links: [
       {

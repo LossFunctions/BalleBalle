@@ -491,9 +491,32 @@ export function Homepage() {
                     </span>
                   </summary>
                   <div className="mt-4 max-w-3xl space-y-4 text-sm leading-7 text-ink/70">
-                    {item.answer.map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
+                    {item.answer.map((paragraph, index) => {
+                      const rowLink = item.answerRowLinks?.find(
+                        (entry) => entry.answerIndex === index,
+                      );
+
+                      if (!rowLink) {
+                        return <p key={paragraph}>{paragraph}</p>;
+                      }
+
+                      return (
+                        <div
+                          className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                          key={`${paragraph}-${rowLink.link.href}`}
+                        >
+                          <p className="min-w-0">{paragraph}</p>
+                          <a
+                            className="inline-flex shrink-0 items-center rounded-full border border-indigo/12 bg-cream px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-indigo/64 transition hover:border-indigo/20 hover:bg-paper sm:self-start"
+                            href={rowLink.link.href}
+                            rel={rowLink.link.external ? "noreferrer" : undefined}
+                            target={rowLink.link.external ? "_blank" : undefined}
+                          >
+                            {rowLink.link.label}
+                          </a>
+                        </div>
+                      );
+                    })}
                     {item.links?.length ? (
                       <div className="flex flex-wrap gap-2 pt-1">
                         {item.links.map((link) => (
