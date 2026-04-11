@@ -68,6 +68,16 @@ export type CustomizeOption = {
   pricePerDay?: number;
   image: MediaAsset;
   gallery?: MediaAsset[];
+  variantLabel?: string;
+  variantHint?: string;
+  variants?: CustomizeOptionVariant[];
+};
+
+export type CustomizeOptionVariant = {
+  id: string;
+  label: string;
+  swatch: string;
+  imageIndex?: number;
 };
 
 export type CustomizeStep = {
@@ -1230,10 +1240,11 @@ export const customizeSteps: CustomizeStep[] = [
     options: [
       {
         id: "six-cushions",
-        title: "Six cushion edit",
-        subtitle: "Simple seating pocket",
+        title: "Five vibrant cushions",
+        subtitle: "Set of 5 cushions",
         selectionSummary:
-          "You are selecting a tighter cushion edit for a smaller seating pocket.",
+          "You are selecting five vibrant cushions for a smaller seating pocket.",
+        pricePerDay: 10,
         image: {
           src: "/product-pictures/customizer/floor-cushions/six-cushions/Cushion2A-Photoroom.png",
           alt: "Cutout view of the six cushion edit option.",
@@ -1337,10 +1348,39 @@ export const customizeSteps: CustomizeStep[] = [
       },
       {
         id: "full-cushion-set",
-        title: "Full lounge cushion set",
-        subtitle: "More filled-in seating",
+        title: "Decorative round cushion",
+        subtitle: "22 inch, rate is for each individual cushion",
         selectionSummary:
-          "You are selecting a fuller cushion set for a more layered lounge feel.",
+          "You are selecting decorative round cushions to build a more layered lounge feel.",
+        pricePerDay: 5,
+        variantLabel: "Color mix",
+        variantHint: "Add quantities by color. Rate is for each individual cushion.",
+        variants: [
+          {
+            id: "pink",
+            label: "Pink",
+            swatch: "#da6aa4",
+            imageIndex: 0,
+          },
+          {
+            id: "yellow",
+            label: "Yellow",
+            swatch: "#e0b428",
+            imageIndex: 1,
+          },
+          {
+            id: "blue",
+            label: "Blue",
+            swatch: "#4662d9",
+            imageIndex: 2,
+          },
+          {
+            id: "orange",
+            label: "Orange",
+            swatch: "#e18b34",
+            imageIndex: 3,
+          },
+        ],
         image: {
           src: "/product-pictures/customizer/floor-cushions/full-cushion-set/LargeCushion1A-Photoroom.png",
           alt: "Cutout view of the full lounge cushion set option.",

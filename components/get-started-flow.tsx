@@ -20,9 +20,16 @@ import {
   type CustomizeOption,
   type CustomizeStep,
 } from "@/lib/site-content";
+import dottedLineImage from "@/Dottedline.png";
 
 type PathMode = BundlePath["id"];
-type StepSelection = Record<string, number> | "skip" | null;
+type OptionVariantSelectionMap = Record<string, number>;
+type OptionSelection = {
+  quantity?: number;
+  variants?: OptionVariantSelectionMap;
+};
+type StepSelectionRecord = Record<string, OptionSelection>;
+type StepSelection = StepSelectionRecord | "skip" | null;
 type SelectionMap = Record<string, StepSelection>;
 type AddOnSelectionMap = Record<string, number>;
 type ScrollTarget = "flow" | "addons";
@@ -35,6 +42,7 @@ type FlowSnapshot = {
 };
 
 const FLOW_SCROLL_OFFSET = 112;
+const SIDEBAR_ADDED_STATUS = "Added";
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -236,12 +244,55 @@ const scrollToPanel = (element: HTMLDivElement | null) => {
   });
 };
 
+const getVariantSelectionCount = (
+  variants?: OptionVariantSelectionMap,
+) => {
+  if (!variants) {
+    return 0;
+  }
+
+  return Object.values(variants).reduce((sum, quantity) => sum + quantity, 0);
+};
+
+const getOptionSelectionQuantity = (selection?: OptionSelection) => {
+  const variantQuantity = getVariantSelectionCount(selection?.variants);
+
+  if (variantQuantity > 0) {
+    return variantQuantity;
+  }
+
+  return selection?.quantity ?? 0;
+};
+
+const hasOptionSelection = (selection?: OptionSelection) =>
+  getOptionSelectionQuantity(selection) > 0;
+
+const cloneOptionSelection = (selection: OptionSelection): OptionSelection => ({
+  ...(typeof selection.quantity === "number"
+    ? { quantity: selection.quantity }
+    : {}),
+  ...(selection.variants ? { variants: { ...selection.variants } } : {}),
+});
+
+const cloneStepSelectionRecord = (
+  selection: StepSelectionRecord,
+): StepSelectionRecord =>
+  Object.fromEntries(
+    Object.entries(selection).map(([optionId, optionSelection]) => [
+      optionId,
+      cloneOptionSelection(optionSelection),
+    ]),
+  );
+
 const getSelectionCount = (selection: StepSelection) => {
   if (!selection || selection === "skip") {
     return 0;
   }
 
-  return Object.values(selection).reduce((sum, quantity) => sum + quantity, 0);
+  return Object.values(selection).reduce(
+    (sum, optionSelection) => sum + getOptionSelectionQuantity(optionSelection),
+    0,
+  );
 };
 
 const getOptionPrice = (step: CustomizeStep, option: CustomizeOption) =>
@@ -253,7 +304,7 @@ const getSelectionTotal = (step: CustomizeStep, selection: StepSelection) => {
   }
 
   return step.options.reduce((sum, option) => {
-    const quantity = selection[option.id] ?? 0;
+    const quantity = getOptionSelectionQuantity(selection[option.id]);
 
     if (quantity <= 0) {
       return sum;
@@ -368,7 +419,9 @@ const cloneSelectionMap = (selectionMap: SelectionMap): SelectionMap =>
   Object.fromEntries(
     Object.entries(selectionMap).map(([stepId, selection]) => [
       stepId,
-      selection && selection !== "skip" ? { ...selection } : selection,
+      selection && selection !== "skip"
+        ? cloneStepSelectionRecord(selection)
+        : selection,
     ]),
   );
 
@@ -377,7 +430,13 @@ const createStandardPresetSelections = (): SelectionMap =>
     const randomOption =
       step.options[Math.floor(Math.random() * step.options.length)];
 
-    accumulator[step.id] = randomOption ? { [randomOption.id]: 1 } : null;
+    accumulator[step.id] = randomOption
+      ? {
+          [randomOption.id]: randomOption.variants?.[0]
+            ? { variants: { [randomOption.variants[0].id]: 1 } }
+            : { quantity: 1 },
+        }
+      : null;
 
     return accumulator;
   }, {});
@@ -403,6 +462,47 @@ const cloneFlowSnapshot = (snapshot: FlowSnapshot): FlowSnapshot => ({
   showAddOns: snapshot.showAddOns,
 });
 
+const getOptionVariantSummary = (
+  option: CustomizeOption,
+  selection?: OptionSelection,
+) => {
+  if (!option.variants?.length || !selection?.variants) {
+    return null;
+  }
+
+  const selectedVariants = option.variants.filter(
+    (variant) => (selection.variants?.[variant.id] ?? 0) > 0,
+  );
+
+  if (selectedVariants.length === 0) {
+    return null;
+  }
+
+  return selectedVariants
+    .map((variant) => {
+      const quantity = selection.variants?.[variant.id] ?? 0;
+
+      return quantity > 1 ? `${variant.label} ×${quantity}` : variant.label;
+    })
+    .join(", ");
+};
+
+const getPreferredOptionImageIndex = (
+  option: CustomizeOption,
+  selection: OptionSelection | undefined,
+  explicitImageIndex?: number,
+) => {
+  if (typeof explicitImageIndex === "number") {
+    return explicitImageIndex;
+  }
+
+  const selectedVariant = option.variants?.find(
+    (variant) => (selection?.variants?.[variant.id] ?? 0) > 0,
+  );
+
+  return selectedVariant?.imageIndex ?? 0;
+};
+
 type GetStartedFlowProps = {
   initialMode?: BundlePath["id"];
 };
@@ -425,6 +525,9 @@ export function GetStartedFlow({
     cloneSelectionMap(initialSnapshot.confirmedSelections),
   );
   const [optionImageIndexes, setOptionImageIndexes] = useState<Record<string, number>>(
+    {},
+  );
+  const [activeVariantIds, setActiveVariantIds] = useState<Record<string, string>>(
     {},
   );
   const [addOnSelections, setAddOnSelections] = useState<AddOnSelectionMap>(() =>
@@ -495,7 +598,7 @@ export function GetStartedFlow({
       ? currentSelectionState
       : null;
   const selectedCurrentOptions = currentStep.options.filter(
-    (option) => (currentSelectionMap?.[option.id] ?? 0) > 0,
+    (option) => hasOptionSelection(currentSelectionMap?.[option.id]),
   );
   const canAdvanceCurrentStep =
     currentSelectionState === "skip" || getSelectionCount(currentSelectionState) > 0;
@@ -511,21 +614,28 @@ export function GetStartedFlow({
     0,
   );
   const subtotal = coreSubtotal + addOnsSubtotal;
-  const addOnsStatus = selectedAddOnsCount > 0 ? "Selected" : "Pending";
+  const addOnsStatus =
+    selectedAddOnsCount > 0 ? SIDEBAR_ADDED_STATUS : "Pending";
   const currentProgressIndex = showAddOns ? null : currentStepIndex;
   const modeHelperCopy =
     mode === "standard"
       ? "Items are pre-selected based on a recommended standard setup."
       : "Customize your setup by adding the items you need.";
-  const selectedPreviewOption =
-    selectedCurrentOptions.find(
+  const previewedCurrentOption =
+    currentStep.options.find(
       (option) => option.id === previewOptionIds[currentStep.id],
-    ) ?? selectedCurrentOptions[0] ?? null;
+    ) ?? null;
+  const selectedPreviewOption =
+    previewedCurrentOption ?? selectedCurrentOptions[0] ?? null;
   const selectedPreviewImages = selectedPreviewOption
     ? getOptionImages(selectedPreviewOption)
     : [];
   const selectedPreviewImageIndex = selectedPreviewOption
-    ? optionImageIndexes[selectedPreviewOption.id] ?? 0
+    ? getPreferredOptionImageIndex(
+        selectedPreviewOption,
+        currentSelectionMap?.[selectedPreviewOption.id],
+        optionImageIndexes[selectedPreviewOption.id],
+      )
     : 0;
   const selectedPreviewImage = selectedPreviewOption
     ? selectedPreviewImages[selectedPreviewImageIndex] ?? selectedPreviewImages[0]
@@ -713,7 +823,7 @@ export function GetStartedFlow({
     }
 
     const selectedOptions = step.options.filter(
-      (option) => (selection[option.id] ?? 0) > 0,
+      (option) => hasOptionSelection(selection[option.id]),
     );
     const selectedCount = getSelectionCount(selection);
     const total = getSelectionTotal(step, selection);
@@ -728,11 +838,18 @@ export function GetStartedFlow({
     }
 
     return {
-      status: "Selected",
+      status: SIDEBAR_ADDED_STATUS,
       tone: "selected" as const,
       headline: selectedOptions
         .map((option) => {
-          const quantity = selection[option.id] ?? 0;
+          const optionSelection = selection[option.id];
+          const variantSummary = getOptionVariantSummary(option, optionSelection);
+          const quantity = getOptionSelectionQuantity(optionSelection);
+
+          if (variantSummary) {
+            return `${option.title} • ${variantSummary}`;
+          }
+
           return quantity > 1 ? `${option.title} ×${quantity}` : option.title;
         })
         .join(", "),
@@ -791,10 +908,10 @@ export function GetStartedFlow({
     });
   };
 
-  const updateStepOptionQuantity = (
+  const focusOptionPreview = (
     stepId: string,
     optionId: string,
-    adjustQuantity: (currentQuantity: number) => number,
+    imageIndex?: number,
   ) => {
     setPreviewMotionDirection(1);
     resetSelectedPreviewZoom();
@@ -802,22 +919,100 @@ export function GetStartedFlow({
       ...currentPreviewOptionIds,
       [stepId]: optionId,
     }));
+
+    if (typeof imageIndex === "number") {
+      setOptionImageIndexes((currentIndexes) => ({
+        ...currentIndexes,
+        [optionId]: imageIndex,
+      }));
+    }
+  };
+
+  const updateStepOptionQuantity = (
+    stepId: string,
+    optionId: string,
+    adjustQuantity: (currentQuantity: number) => number,
+  ) => {
+    focusOptionPreview(stepId, optionId);
     setDraftSelections((currentSelections) => {
       const existingSelection = currentSelections[stepId];
       const selectionMap =
         existingSelection && existingSelection !== "skip"
-          ? { ...existingSelection }
+          ? cloneStepSelectionRecord(existingSelection)
           : {};
-      const currentQuantity = selectionMap[optionId] ?? 0;
+      const optionSelection = selectionMap[optionId]
+        ? cloneOptionSelection(selectionMap[optionId])
+        : {};
+      const currentQuantity = optionSelection.quantity ?? 0;
       const nextQuantity = Math.max(0, adjustQuantity(currentQuantity));
 
       if (nextQuantity <= 0) {
-        delete selectionMap[optionId];
+        delete optionSelection.quantity;
       } else {
-        selectionMap[optionId] = nextQuantity;
+        optionSelection.quantity = nextQuantity;
       }
 
-      const hasSelections = Object.values(selectionMap).some((quantity) => quantity > 0);
+      if (hasOptionSelection(optionSelection)) {
+        selectionMap[optionId] = optionSelection;
+      } else {
+        delete selectionMap[optionId];
+      }
+
+      const hasSelections = Object.values(selectionMap).some(hasOptionSelection);
+
+      return {
+        ...currentSelections,
+        [stepId]: hasSelections ? selectionMap : null,
+      };
+    });
+  };
+
+  const updateStepOptionVariantQuantity = (
+    stepId: string,
+    option: CustomizeOption,
+    variantId: string,
+    imageIndex: number | undefined,
+    adjustQuantity: (currentQuantity: number) => number,
+  ) => {
+    focusOptionPreview(stepId, option.id, imageIndex);
+    setActiveVariantIds((currentActiveVariantIds) => ({
+      ...currentActiveVariantIds,
+      [option.id]: variantId,
+    }));
+    setDraftSelections((currentSelections) => {
+      const existingSelection = currentSelections[stepId];
+      const selectionMap =
+        existingSelection && existingSelection !== "skip"
+          ? cloneStepSelectionRecord(existingSelection)
+          : {};
+      const optionSelection = selectionMap[option.id]
+        ? cloneOptionSelection(selectionMap[option.id])
+        : {};
+      const variantSelections = { ...(optionSelection.variants ?? {}) };
+      const currentQuantity = variantSelections[variantId] ?? 0;
+      const nextQuantity = Math.max(0, adjustQuantity(currentQuantity));
+
+      if (nextQuantity <= 0) {
+        delete variantSelections[variantId];
+      } else {
+        variantSelections[variantId] = nextQuantity;
+      }
+
+      delete optionSelection.quantity;
+
+      if (Object.keys(variantSelections).length > 0) {
+        optionSelection.variants = variantSelections;
+      } else {
+        delete optionSelection.variants;
+      }
+
+      if (hasOptionSelection(optionSelection)) {
+        selectionMap[option.id] = optionSelection;
+      } else {
+        delete selectionMap[option.id];
+      }
+
+      const hasSelections = Object.values(selectionMap).some(hasOptionSelection);
 
       return {
         ...currentSelections,
@@ -908,6 +1103,7 @@ export function GetStartedFlow({
     }
 
     resetSelectedPreviewZoom();
+    setActiveVariantIds({});
     setPreviewOptionIds({});
     startTransition(() => {
       applySnapshot(nextSnapshot);
@@ -1020,9 +1216,9 @@ export function GetStartedFlow({
                       const active = !showAddOns && index === currentStepIndex;
 
                       const itemClasses = active
-                        ? "border-indigo/16 bg-paper shadow-[0_18px_40px_-34px_rgba(34,30,71,0.3)]"
+                        ? "border-[rgba(34,30,71,0.34)] bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] shadow-[0_18px_40px_-34px_rgba(34,30,71,0.3)]"
                         : summary.tone === "selected"
-                          ? "border-mehendi/24 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] shadow-[0_18px_40px_-34px_rgba(11,123,76,0.28)]"
+                          ? "border-mehendi/16 bg-paper shadow-[0_18px_40px_-34px_rgba(34,30,71,0.16)]"
                           : summary.tone === "skipped"
                             ? "border-dashed border-ink/18 bg-paper/72 hover:border-ink/24"
                             : "border-ink/8 bg-paper/76 hover:border-indigo/16";
@@ -1030,7 +1226,7 @@ export function GetStartedFlow({
                       const badgeClasses = active
                         ? "border-indigo/10 bg-indigo text-paper"
                         : summary.tone === "selected"
-                          ? "border-mehendi/12 bg-paper/88 text-mehendi"
+                          ? "border-mehendi bg-mehendi text-paper"
                           : summary.tone === "skipped"
                             ? "border-ink/10 bg-paper text-ink/58"
                             : "border-ink/8 bg-paper text-ink/55";
@@ -1074,9 +1270,9 @@ export function GetStartedFlow({
                   <button
                     className={`pressable mt-6 w-full rounded-[1.7rem] border p-4 text-left transition hover:border-indigo/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream ${
                       showAddOns
-                        ? "border-indigo/16 bg-paper shadow-[0_18px_40px_-34px_rgba(34,30,71,0.3)]"
+                        ? "border-[rgba(34,30,71,0.34)] bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] shadow-[0_18px_40px_-34px_rgba(34,30,71,0.3)]"
                         : selectedAddOnsCount > 0
-                          ? "border-mehendi/24 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] shadow-[0_18px_40px_-34px_rgba(11,123,76,0.28)]"
+                          ? "border-mehendi/16 bg-paper shadow-[0_18px_40px_-34px_rgba(34,30,71,0.16)]"
                           : "border-ink/8 bg-paper"
                     }`}
                     onClick={handleAddOnsCardClick}
@@ -1106,7 +1302,7 @@ export function GetStartedFlow({
                           showAddOns
                             ? "border-indigo/10 bg-indigo text-paper"
                             : selectedAddOnsCount > 0
-                              ? "border-mehendi/12 bg-paper/88 text-mehendi"
+                              ? "border-mehendi bg-mehendi text-paper"
                               : "border-ink/8 bg-paper text-ink/55"
                         }`}
                       >
@@ -1344,34 +1540,75 @@ export function GetStartedFlow({
 
                 <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {currentStep.options.map((option) => {
-                    const quantity = currentSelectionMap?.[option.id] ?? 0;
+                    const optionSelection = currentSelectionMap?.[option.id];
+                    const hasVariants = Boolean(option.variants?.length);
+                    const quantity = getOptionSelectionQuantity(optionSelection);
                     const selected = quantity > 0;
                     const selectedBadgeLabel =
-                      quantity > 1 ? `Selected ×${quantity}` : "Selected";
+                      !hasVariants && selected
+                        ? quantity > 1
+                          ? `Selected ×${quantity}`
+                          : "Selected"
+                        : null;
                     const optionImages = getOptionImages(option);
-                    const activeImageIndex = optionImageIndexes[option.id] ?? 0;
+                    const activeImageIndex = getPreferredOptionImageIndex(
+                      option,
+                      optionSelection,
+                      optionImageIndexes[option.id],
+                    );
                     const activeImage = optionImages[activeImageIndex] ?? optionImages[0];
                     const hasGallery = optionImages.length > 1;
+                    const showInlineGallery = hasGallery;
+                    const activeVariant = hasVariants
+                      ? option.variants?.find(
+                          (variant) => variant.id === activeVariantIds[option.id],
+                        ) ??
+                        option.variants?.find(
+                          (variant) =>
+                            (optionSelection?.variants?.[variant.id] ?? 0) > 0,
+                        ) ??
+                        null
+                      : null;
+                    const activeVariantQuantity = activeVariant
+                      ? optionSelection?.variants?.[activeVariant.id] ?? 0
+                      : 0;
                     const optionImagePresentation =
                       getOptionImagePresentation(activeImage);
+                    const cardClasses = selected
+                      ? "border-mehendi/28 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.96))] shadow-[0_22px_44px_-32px_rgba(11,123,76,0.45)]"
+                      : hasVariants
+                        ? "border-ink/8 bg-cream"
+                        : "border-ink/8 bg-cream hover:-translate-y-1 hover:border-indigo/14 hover:shadow-[0_22px_44px_-34px_rgba(34,30,71,0.28)]";
 
                     return (
                       <div
-                        aria-pressed={selected}
-                        className={`group cursor-pointer rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
-                          selected
-                            ? "border-mehendi/28 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.96))] shadow-[0_22px_44px_-32px_rgba(11,123,76,0.45)]"
-                            : "border-ink/8 bg-cream hover:-translate-y-1 hover:border-indigo/14 hover:shadow-[0_22px_44px_-34px_rgba(34,30,71,0.28)]"
-                        }`}
+                        aria-pressed={hasVariants ? undefined : selected}
+                        className={`group rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper cursor-pointer ${cardClasses}`}
                         key={option.id}
-                        onClick={() => handleSelect(currentStep.id, option)}
-                        onKeyDown={(event) =>
-                          handleSelectableCardKeyDown(event, () =>
-                            handleSelect(currentStep.id, option),
-                          )
+                        onClick={
+                          hasVariants
+                            ? () =>
+                                focusOptionPreview(
+                                  currentStep.id,
+                                  option.id,
+                                  getPreferredOptionImageIndex(
+                                    option,
+                                    optionSelection,
+                                    optionImageIndexes[option.id],
+                                  ),
+                                )
+                            : () => handleSelect(currentStep.id, option)
                         }
-                        role="button"
-                        tabIndex={0}
+                        onKeyDown={
+                          hasVariants
+                            ? undefined
+                            : (event) =>
+                                handleSelectableCardKeyDown(event, () =>
+                                  handleSelect(currentStep.id, option),
+                                )
+                        }
+                        role={hasVariants ? undefined : "button"}
+                        tabIndex={hasVariants ? undefined : 0}
                       >
                         <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
                           <div className={`relative ${optionImagePresentation.frameClassName}`}>
@@ -1399,7 +1636,7 @@ export function GetStartedFlow({
                               style={optionImagePresentation.imageStyle}
                             />
                           </div>
-                          {selected ? (
+                          {selected && selectedBadgeLabel ? (
                             <span className="absolute left-4 top-4 rounded-full border border-mehendi/10 bg-paper/88 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-mehendi backdrop-blur">
                               {selectedBadgeLabel}
                             </span>
@@ -1409,7 +1646,7 @@ export function GetStartedFlow({
                               Video
                             </span>
                           ) : null}
-                          {hasGallery ? (
+                          {showInlineGallery ? (
                             <div className="border-t border-indigo/8 bg-[linear-gradient(180deg,rgba(249,248,244,0.9),rgba(255,255,255,0.96))] px-3 py-2">
                               <div className="flex items-center justify-between gap-3">
                                 <button
@@ -1453,36 +1690,140 @@ export function GetStartedFlow({
                           <p className="mt-2 text-[0.72rem] uppercase tracking-[0.2em] text-indigo/48">
                             {option.subtitle}
                           </p>
-                          <div
-                            className={`mt-4 flex items-center ${
-                              selected ? "justify-between gap-3" : "justify-end"
-                            }`}
-                          >
-                            {selected ? (
-                              <QuantityStepper
-                                decrementLabel={`Decrease quantity for ${option.title}`}
-                                incrementLabel={`Increase quantity for ${option.title}`}
-                                onDecrement={() =>
-                                  updateStepOptionQuantity(
-                                    currentStep.id,
-                                    option.id,
-                                    (currentQuantity) => currentQuantity - 1,
-                                  )
-                                }
-                                onIncrement={() =>
-                                  updateStepOptionQuantity(
-                                    currentStep.id,
-                                    option.id,
-                                    (currentQuantity) => currentQuantity + 1,
-                                  )
-                                }
-                                quantity={quantity}
-                              />
-                            ) : null}
-                            <span className={PRICE_PILL_CLASSES}>
-                              {formatDailyPrice(getOptionPrice(currentStep, option))}
-                            </span>
-                          </div>
+                          {hasVariants ? (
+                            <>
+                              <div className="mt-5 flex items-start justify-between gap-2">
+                                {option.variants?.map((variant) => {
+                                  const variantQuantity =
+                                    optionSelection?.variants?.[variant.id] ?? 0;
+                                  const variantSelected = variantQuantity > 0;
+                                  const variantActive = activeVariant?.id === variant.id;
+
+                                  return (
+                                    <button
+                                      aria-label={`Select ${variant.label} for ${option.title}`}
+                                      aria-pressed={variantActive}
+                                      className="pressable flex shrink-0 flex-col items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                                      key={variant.id}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        setActiveVariantIds((currentActiveVariantIds) => ({
+                                          ...currentActiveVariantIds,
+                                          [option.id]: variant.id,
+                                        }));
+                                        focusOptionPreview(
+                                          currentStep.id,
+                                          option.id,
+                                          variant.imageIndex,
+                                        );
+                                      }}
+                                      type="button"
+                                    >
+                                      <span
+                                        className={`inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_12px_22px_-18px_rgba(34,30,71,0.34)] transition ${
+                                          variantSelected
+                                            ? "border-mehendi bg-paper shadow-[0_0_0_3px_rgba(11,123,76,0.08)]"
+                                            : variantActive
+                                              ? "border-indigo/22 bg-paper shadow-[0_0_0_3px_rgba(34,30,71,0.05)]"
+                                              : "border-ink/8 bg-paper"
+                                        }`}
+                                      >
+                                        <span
+                                          className="h-5 w-5 rounded-full border border-paper/80 shadow-[0_0_0_1px_rgba(34,30,71,0.08)]"
+                                          style={{
+                                            backgroundColor: variant.swatch,
+                                          }}
+                                        />
+                                      </span>
+                                      <span className="mt-1 block min-h-[0.95rem] text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-mehendi">
+                                        {variantSelected ? `x${variantQuantity}` : ""}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              <div
+                                className={`mt-4 flex items-center ${
+                                  activeVariant
+                                    ? "justify-between gap-3"
+                                    : "justify-between gap-3"
+                                }`}
+                              >
+                                {activeVariant ? (
+                                  <QuantityStepper
+                                    decrementLabel={`Decrease ${activeVariant.label} quantity for ${option.title}`}
+                                    incrementLabel={`Increase ${activeVariant.label} quantity for ${option.title}`}
+                                    onDecrement={() =>
+                                      updateStepOptionVariantQuantity(
+                                        currentStep.id,
+                                        option,
+                                        activeVariant.id,
+                                        activeVariant.imageIndex,
+                                        (currentQuantity) => currentQuantity - 1,
+                                      )
+                                    }
+                                    onIncrement={() =>
+                                      updateStepOptionVariantQuantity(
+                                        currentStep.id,
+                                        option,
+                                        activeVariant.id,
+                                        activeVariant.imageIndex,
+                                        (currentQuantity) => currentQuantity + 1,
+                                      )
+                                    }
+                                    quantity={activeVariantQuantity}
+                                  />
+                                ) : (
+                                  <div className="flex-1 min-w-0">
+                                    <span className="relative inline-block whitespace-nowrap text-[0.72rem] font-medium uppercase tracking-[0.24em] text-indigo/42">
+                                      <Image
+                                        alt=""
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute left-[calc(100%-0.2rem)] -top-9 h-auto w-11 select-none opacity-55 mix-blend-multiply"
+                                        src={dottedLineImage}
+                                      />
+                                      Pick a color
+                                    </span>
+                                  </div>
+                                )}
+                                <span className={PRICE_PILL_CLASSES}>
+                                  {formatDailyPrice(getOptionPrice(currentStep, option))}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <div
+                              className={`mt-4 flex items-center ${
+                                selected ? "justify-between gap-3" : "justify-end"
+                              }`}
+                            >
+                              {selected ? (
+                                <QuantityStepper
+                                  decrementLabel={`Decrease quantity for ${option.title}`}
+                                  incrementLabel={`Increase quantity for ${option.title}`}
+                                  onDecrement={() =>
+                                    updateStepOptionQuantity(
+                                      currentStep.id,
+                                      option.id,
+                                      (currentQuantity) => currentQuantity - 1,
+                                    )
+                                  }
+                                  onIncrement={() =>
+                                    updateStepOptionQuantity(
+                                      currentStep.id,
+                                      option.id,
+                                      (currentQuantity) => currentQuantity + 1,
+                                    )
+                                  }
+                                  quantity={quantity}
+                                />
+                              ) : null}
+                              <span className={PRICE_PILL_CLASSES}>
+                                {formatDailyPrice(getOptionPrice(currentStep, option))}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
