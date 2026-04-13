@@ -102,6 +102,27 @@ summary::-webkit-details-marker {
   }
 }
 
+@keyframes occasion-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes occasion-marquee-breathe {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes selected-preview-shift-next {
   from {
     opacity: 0.18;
@@ -193,6 +214,29 @@ summary::-webkit-details-marker {
   transform: translateY(1px) scale(0.985);
 }
 
+.occasion-banner {
+  background-image:
+    linear-gradient(90deg, rgba(225, 177, 183, 0.14), transparent 18%, transparent 82%, rgba(238, 198, 10, 0.12)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+}
+
+.occasion-marquee {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+}
+
+.occasion-marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 0.85rem;
+  will-change: transform;
+  animation:
+    occasion-marquee-scroll 30s linear infinite,
+    occasion-marquee-breathe 10s ease-in-out infinite;
+}
+
 .flow-enter {
   animation: flow-enter 460ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -281,7 +325,8 @@ summary::-webkit-details-marker {
   }
 
   .selected-preview-shift-next,
-  .selected-preview-shift-prev {
+  .selected-preview-shift-prev,
+  .occasion-marquee__track {
     animation: none;
   }
 

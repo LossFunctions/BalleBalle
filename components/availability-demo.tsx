@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AvailabilityDemoState } from "@/lib/site-content";
+import { siteConfig, type AvailabilityDemoState } from "@/lib/site-content";
 
 const responseOptions: Array<{
   label: string;
@@ -23,29 +23,58 @@ export function AvailabilityDemo() {
   return (
     <section
       aria-labelledby="availability-title"
-      className="rounded-[2rem] border border-ink/10 bg-paper/95 p-5 shadow-[0_30px_90px_-55px_rgba(34,30,71,0.55)] backdrop-blur sm:p-6"
+      className="rounded-[2.4rem] border border-ink/10 bg-paper/95 p-6 shadow-[0_30px_90px_-55px_rgba(34,30,71,0.55)] backdrop-blur sm:p-8 lg:p-10"
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-indigo/55">
-              Availability Prototype
-            </p>
             <h2
               id="availability-title"
-              className="mt-1 font-display text-3xl leading-none text-indigo"
+              className="font-display text-[clamp(2.8rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.05em] text-indigo"
             >
               Check availability
             </h2>
           </div>
-          <div className="rounded-full border border-mehendi/15 bg-mehendi/8 px-3 py-1 text-xs text-mehendi">
-            Static demo states only
-          </div>
         </div>
-        <p className="max-w-xl text-sm leading-6 text-ink/70">
-          Use the response toggle to preview how the future booking flow should
-          behave. No dates are locked and no payment is collected in this phase.
-        </p>
+
+        <a
+          className="group inline-flex w-full items-center justify-between gap-4 rounded-[1.5rem] border border-ink/8 bg-cream px-5 py-4 text-left transition hover:border-indigo/18 hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+          href={siteConfig.pickupMapUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <div className="min-w-0">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-indigo/48">
+              Pickup address
+            </p>
+            <p className="mt-2 text-sm leading-6 text-ink/78 sm:text-base">
+              {siteConfig.pickupArea}
+            </p>
+          </div>
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-ink/10 bg-paper text-indigo transition group-hover:-translate-y-0.5 group-hover:border-indigo/18">
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M7 17L17 7M10 7H17V14"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.85"
+              />
+              <path
+                d="M15 17H8a1 1 0 0 1-1-1V9"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.85"
+              />
+            </svg>
+          </span>
+        </a>
       </div>
 
       <form
@@ -57,7 +86,7 @@ export function AvailabilityDemo() {
       >
         <fieldset>
           <legend className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo/55">
-            Demo Response
+            Response preview
           </legend>
           <div className="mt-3 flex flex-wrap gap-2">
             {responseOptions.map((option) => {
@@ -93,14 +122,6 @@ export function AvailabilityDemo() {
             />
           </label>
           <label className="text-sm text-ink/78">
-            Pickup window
-            <select className={fieldClassName} defaultValue="after-3" name="pickup-window">
-              <option value="morning">10:00 AM to 1:00 PM</option>
-              <option value="after-3">3:00 PM to 6:00 PM</option>
-              <option value="evening">6:00 PM to 8:00 PM</option>
-            </select>
-          </label>
-          <label className="text-sm text-ink/78">
             Return date
             <input
               className={fieldClassName}
@@ -109,24 +130,7 @@ export function AvailabilityDemo() {
               type="date"
             />
           </label>
-          <label className="text-sm text-ink/78">
-            Return window
-            <select className={fieldClassName} defaultValue="before-noon" name="return-window">
-              <option value="before-noon">Before 12:00 PM</option>
-              <option value="afternoon">12:00 PM to 3:00 PM</option>
-              <option value="late">3:00 PM to 6:00 PM</option>
-            </select>
-          </label>
         </div>
-
-        <label className="block text-sm text-ink/78">
-          Notes
-          <textarea
-            className={`${fieldClassName} min-h-28 resize-y`}
-            defaultValue="Mayun at home, intimate guest list, warm florals preferred."
-            name="notes"
-          />
-        </label>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
@@ -135,10 +139,6 @@ export function AvailabilityDemo() {
           >
             Check availability
           </button>
-          <p className="text-xs leading-5 text-ink/58">
-            Prototype behavior only. Final reserve logic, payments, and holds
-            are intentionally deferred.
-          </p>
         </div>
 
         <div
@@ -148,7 +148,7 @@ export function AvailabilityDemo() {
           {currentState === "idle" && (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-indigo">
-                Choose a demo response and submit to preview the flow.
+                Choose a response state and submit to preview the flow.
               </p>
               <p className="text-sm leading-6 text-ink/70">
                 The idle state keeps the card calm until the customer checks a
@@ -161,7 +161,7 @@ export function AvailabilityDemo() {
             <div className="space-y-4">
               <div className="rounded-[1.4rem] border border-mehendi/18 bg-mehendi/10 p-4">
                 <p className="text-sm font-semibold text-mehendi">
-                  These demo dates are shown as available.
+                  These dates are shown as available.
                 </p>
                 <p className="mt-1 text-sm leading-6 text-ink/72">
                   The next step is a light customer intake before a manual
@@ -206,10 +206,6 @@ export function AvailabilityDemo() {
                 >
                   Reserve this setup
                 </button>
-                <p className="text-xs leading-5 text-ink/58">
-                  Prototype only. No deposit, payment capture, or reservation is
-                  created.
-                </p>
               </div>
             </div>
           )}
@@ -217,15 +213,14 @@ export function AvailabilityDemo() {
           {currentState === "unavailable" && (
             <div className="space-y-3">
               <p className="text-sm font-semibold text-indigo">
-                This demo marks the selected range as unavailable.
-              </p>
-              <p className="text-sm leading-6 text-ink/72">
-                Suggested alternate: Friday, June 19 after 3:00 PM pickup with a
-                Monday, June 22 before noon return.
-              </p>
-              <p className="text-sm leading-6 text-ink/72">
-                Keep the tone soft and helpful here; the future live system can
-                later suggest real nearby inventory windows.
+                Unfortunately these dates are not available, contact{" "}
+                <a
+                  className="underline decoration-indigo/30 underline-offset-4 transition hover:text-indigo hover:decoration-indigo"
+                  href="mailto:umihuss@gmail.com"
+                >
+                  umihuss@gmail.com
+                </a>{" "}
+                for more info.
               </p>
             </div>
           )}

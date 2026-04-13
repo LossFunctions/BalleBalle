@@ -1,35 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
-import { PackageCarousel } from "@/components/package-carousel";
+import { OccasionMarquee } from "@/components/occasion-marquee";
 import { Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import {
-  bundlePaths,
-  customizeAddOns,
-  customizeSteps,
   faqItems,
-  galleryItems,
   howItWorksSteps,
   siteConfig,
   trustBadges,
 } from "@/lib/site-content";
 
-const galleryLayoutClasses = [
-  "md:col-span-7 md:row-span-2",
-  "md:col-span-5",
-  "md:col-span-3",
-  "md:col-span-4",
-];
-
 export function Homepage() {
-  const customizePath = bundlePaths.find((path) => path.id === "customize");
-  const standardPath = bundlePaths.find((path) => path.id === "standard");
-
-  if (!customizePath || !standardPath) {
-    return null;
-  }
-
   return (
     <div id="top" className="relative min-h-screen">
       <a className="skip-link focus-visible:outline-none" href="#main">
@@ -39,7 +21,11 @@ export function Homepage() {
       <SiteHeader />
 
       <main id="main" className="pb-24">
-        <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8 lg:pt-10">
+        <Reveal delay={90}>
+          <OccasionMarquee />
+        </Reveal>
+
+        <section className="mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:mt-6 lg:px-8">
           <div className="relative overflow-hidden rounded-[2.75rem] border border-ink/8 bg-cream px-6 py-8 shadow-[0_35px_110px_-70px_rgba(34,30,71,0.52)] sm:px-10 sm:py-10 lg:px-12 lg:py-12">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(225,177,183,0.22),transparent_36%),radial-gradient(circle_at_88%_20%,rgba(238,198,10,0.12),transparent_18%)]" />
             <div className="absolute -left-24 top-16 h-56 w-56 rounded-full border border-indigo/8" />
@@ -47,17 +33,14 @@ export function Homepage() {
 
             <div className="relative grid gap-12 xl:grid-cols-[minmax(0,1.04fr)_minmax(380px,0.96fr)] xl:items-center">
               <div className="hero-sequence relative z-10 max-w-[42rem]">
-                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-indigo/55">
-                  Premium dholki rental for intimate celebrations
-                </p>
-                <h1 className="max-w-[10ch] font-display text-[clamp(3.35rem,7.2vw,6.4rem)] leading-[0.95] tracking-[-0.06em] text-indigo">
-                  A dholki setting with ceremony in its posture.
+                <h1 className="max-w-[9ch] font-display text-[clamp(3.35rem,7.2vw,6.4rem)] leading-[0.95] tracking-[-0.06em] text-indigo">
+                  Fully customize your event setup
                 </h1>
                 <p className="mt-4 max-w-xl text-base leading-8 text-ink/72 sm:text-lg">
-                  Floor seating, layered textiles, tray accents, and quiet
-                  finishings arranged for mehndi, mayun, and smaller gatherings.
-                  The service reads clearly in one glance and still feels
-                  composed.
+                  Only pay for the pieces you need, from the exact dhol to
+                  backdrop styles, garlands, rugs, props, and finishing extras.
+                  If you want the simpler route, the ready-made package still
+                  lives right here on the homepage.
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -69,9 +52,9 @@ export function Homepage() {
                   </Link>
                   <Link
                     className="pressable inline-flex items-center justify-center rounded-full border border-ink/10 px-6 py-3 text-sm text-ink/75 transition hover:border-indigo/18 hover:bg-paper/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
-                    href="/#rental"
+                    href="/gallery"
                   >
-                    View the setup
+                    Browse gallery
                   </Link>
                 </div>
 
@@ -120,207 +103,6 @@ export function Homepage() {
             <div aria-hidden="true" className="motif-divider mt-10 h-10" />
           </div>
         </section>
-
-        <Reveal className="mx-auto mt-14 max-w-7xl px-4 sm:px-6 lg:px-8" delay={80}>
-          <section className="grid gap-8 xl:grid-cols-[minmax(320px,0.84fr)_minmax(0,1.16fr)]">
-            <div className="rounded-[2.5rem] border border-ink/8 bg-cream px-6 py-7 shadow-[0_30px_90px_-58px_rgba(34,30,71,0.42)] sm:px-8 sm:py-8">
-              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-indigo/55">
-                Get Started
-              </p>
-              <h2 className="mt-3 max-w-[11ch] font-display text-[clamp(3.1rem,6vw,5.4rem)] leading-[0.94] tracking-[-0.05em] text-indigo">
-                Fully customize your Dholki setup to fit your needs.
-              </h2>
-              <p className="mt-5 max-w-xl text-base leading-8 text-ink/72">
-                Only pay for the pieces you need, from the exact dhol to
-                backdrop styles, garlands, rugs, props, and finishing extras.
-                If you want the simpler route, the ready-made package still
-                lives right here on the homepage.
-              </p>
-
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                <article className="rounded-[1.7rem] border border-ink/8 bg-paper p-5">
-                  <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                    Tailored setup
-                  </p>
-                  <p className="mt-3 font-display text-4xl leading-none text-indigo">
-                    {customizeSteps.length}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-ink/70">
-                    core setup categories
-                  </p>
-                </article>
-                <article className="rounded-[1.7rem] border border-ink/8 bg-paper p-5">
-                  <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                    Extras
-                  </p>
-                  <p className="mt-3 font-display text-4xl leading-none text-indigo">
-                    {customizeAddOns.length}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-ink/70">
-                    finishing extras and details
-                  </p>
-                </article>
-              </div>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Link
-                className="pressable group rounded-[2.3rem] border border-ink/8 bg-paper p-6 text-left shadow-[0_26px_70px_-46px_rgba(34,30,71,0.32)] transition hover:-translate-y-1 hover:border-mehendi/18 hover:shadow-[0_30px_80px_-44px_rgba(11,123,76,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                href="/get-started"
-              >
-                <div className="rounded-[1.6rem] border border-ink/8 bg-cream p-5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-indigo/48">
-                    {customizePath.eyebrow}
-                  </p>
-                  <h3 className="mt-4 max-w-[10ch] font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
-                    Build only what belongs in your package.
-                  </h3>
-                  <p className="mt-4 max-w-xl text-sm leading-7 text-ink/70">
-                    Go straight into dhol style, then move through each layer
-                    of the setup one step at a time.
-                  </p>
-                </div>
-
-                <ul className="mt-5 grid gap-3 text-sm leading-6 text-ink/72">
-                  {customizePath.bullets.map((bullet) => (
-                    <li className="flex gap-3" key={bullet}>
-                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mehendi" />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <span className="mt-6 inline-flex rounded-full bg-indigo px-5 py-3 text-sm font-semibold text-paper">
-                  Begin tailored setup
-                </span>
-              </Link>
-
-              <Link
-                className="pressable group rounded-[2.3rem] border border-ink/8 bg-paper p-6 text-left shadow-[0_24px_60px_-48px_rgba(34,30,71,0.35)] transition hover:-translate-y-1 hover:border-indigo/18 hover:shadow-[0_28px_70px_-44px_rgba(34,30,71,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                href="/get-started?path=standard"
-              >
-                <div className="rounded-[1.5rem] border border-ink/8 bg-cream p-5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-indigo/48">
-                    {standardPath.eyebrow}
-                  </p>
-                  <h3 className="mt-4 font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
-                    {standardPath.title}
-                  </h3>
-                  <p className="mt-4 text-sm leading-7 text-ink/70">
-                    Review the signature package if you want the quickest route
-                    with the styling already framed for you.
-                  </p>
-                </div>
-
-                <ul className="mt-5 space-y-3 text-sm leading-6 text-ink/72">
-                  {standardPath.bullets.map((bullet) => (
-                    <li className="flex gap-3" key={bullet}>
-                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-marigold transition group-hover:bg-mehendi" />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <span className="mt-6 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm text-ink/78">
-                  Review signature package
-                </span>
-              </Link>
-            </div>
-          </section>
-        </Reveal>
-
-        <Reveal className="mx-auto mt-14 max-w-7xl px-4 sm:px-6 lg:px-8">
-          <section
-            className="grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(330px,0.92fr)] lg:items-start"
-            id="rental"
-          >
-            <div className="grid gap-4">
-              <figure className="image-lift relative overflow-hidden rounded-[2rem] border border-ink/8 bg-paper shadow-[0_28px_70px_-48px_rgba(34,30,71,0.42)]">
-                <div className="relative aspect-[16/10]">
-                  <Image
-                    alt={siteConfig.setupImage.alt}
-                    className="object-cover"
-                    fill
-                    sizes="(min-width: 1024px) 42vw, 100vw"
-                    src={siteConfig.setupImage.src}
-                  />
-                </div>
-              </figure>
-
-              <PackageCarousel slides={siteConfig.packagePreviewSlides} />
-            </div>
-
-            <div className="lg:sticky lg:top-28">
-              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-indigo/55">
-                Single product
-              </p>
-              <h2 className="mt-3 font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
-                {siteConfig.productName}
-              </h2>
-              <p className="mt-4 max-w-xl text-base leading-8 text-ink/72">
-                One composed rental, explained without clutter. Customers should
-                understand the silhouette, the scale, and the pickup rhythm
-                before any backend exists.
-              </p>
-
-              <div className="mt-6 rounded-[2rem] border border-indigo/10 bg-cream p-6">
-                <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                  Pricing placeholder
-                </p>
-                <div className="mt-3 flex items-end justify-between gap-4">
-                  <p className="font-display text-5xl leading-none text-indigo">
-                    {siteConfig.pricingPlaceholder.amount}
-                  </p>
-                  <span className="rounded-full bg-marigold/28 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-ink">
-                    Base rate
-                  </span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-ink/68">
-                  {siteConfig.pricingPlaceholder.note}
-                </p>
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-[1.8rem] border border-ink/8 bg-paper p-5">
-                  <h3 className="font-display text-2xl leading-none text-indigo">
-                    Included
-                  </h3>
-                  <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/72">
-                    {siteConfig.includedItems.map((item) => (
-                      <li className="flex gap-3" key={item}>
-                        <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-marigold" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="rounded-[1.8rem] border border-ink/8 bg-paper p-5">
-                  <h3 className="font-display text-2xl leading-none text-indigo">
-                    Fit notes
-                  </h3>
-                  <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/72">
-                    {siteConfig.fitNotes.map((note) => (
-                      <li className="flex gap-3" key={note}>
-                        <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mehendi" />
-                        <span>{note}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[1.8rem] border border-ink/8 bg-paper p-5">
-                <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                  Pickup address
-                </p>
-                <p className="mt-2 text-lg leading-7 text-ink/78">
-                  {siteConfig.pickupArea}
-                </p>
-              </div>
-            </div>
-          </section>
-        </Reveal>
 
         <Reveal
           className="mx-auto mt-14 max-w-7xl px-4 sm:px-6 lg:px-8"
@@ -388,68 +170,6 @@ export function Homepage() {
                     </p>
                   ) : null}
                 </article>
-              ))}
-            </div>
-          </section>
-        </Reveal>
-
-        <Reveal
-          className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8"
-          delay={200}
-        >
-          <section id="gallery">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-indigo/55">
-                  Gallery and proof
-                </p>
-                <h2 className="mt-3 font-display text-5xl leading-none tracking-[-0.05em] text-indigo">
-                  Mixed frames keep the service believable.
-                </h2>
-              </div>
-              <p className="max-w-xl text-sm leading-7 text-ink/68">
-                These placeholder assets are intentionally composed for the
-                production ratios you will need later: portrait, wide proof,
-                logistics, and close detail.
-              </p>
-            </div>
-
-            <div className="mt-10 grid gap-4 md:grid-cols-12">
-              {galleryItems.map((item, index) => (
-                <figure
-                  key={item.title}
-                  className={`image-lift overflow-hidden rounded-[2rem] border border-ink/8 bg-paper shadow-[0_28px_70px_-48px_rgba(34,30,71,0.42)] ${
-                    galleryLayoutClasses[index]
-                  }`}
-                >
-                  <div
-                    className={`relative ${
-                      index === 0
-                        ? "aspect-[4/5]"
-                        : index === 1
-                          ? "aspect-[5/4]"
-                          : index === 2
-                            ? "aspect-[4/5]"
-                            : "aspect-square"
-                    }`}
-                  >
-                    <Image
-                      alt={item.image.alt}
-                      className="object-cover"
-                      fill
-                      sizes="(min-width: 768px) 50vw, 100vw"
-                      src={item.image.src}
-                    />
-                  </div>
-                  <figcaption className="p-5">
-                    <p className="font-display text-2xl leading-none text-indigo">
-                      {item.title}
-                    </p>
-                    <p className="mt-3 text-sm leading-6 text-ink/68">
-                      {item.caption}
-                    </p>
-                  </figcaption>
-                </figure>
               ))}
             </div>
           </section>

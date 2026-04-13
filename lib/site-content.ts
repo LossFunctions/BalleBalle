@@ -112,6 +112,7 @@ export type SiteConfig = {
   serviceLabel: string;
   productName: string;
   pickupArea: string;
+  pickupMapUrl: string;
   navItems: NavItem[];
   contactLinks: ContactLink[];
   socialLinks: ContactLink[];
@@ -132,15 +133,14 @@ export type SiteConfig = {
 
 export const siteConfig = {
   businessName: "Balle Balle",
-  serviceLabel: "Dholki Rental Simplified",
+  serviceLabel: "South Asian Rental Simplified",
   productName: "Signature Dholki Package",
   pickupArea: "60-34 60th Drive, Maspeth, NY 11378",
+  pickupMapUrl: "https://maps.app.goo.gl/fmsfzFiFrusxjU8s6",
   navItems: [
     { label: "Get Started", href: "/get-started" },
-    { label: "Rental", href: "/#rental" },
     { label: "Availability", href: "/availability" },
-    { label: "How It Works", href: "/#process" },
-    { label: "Gallery", href: "/#gallery" },
+    { label: "Gallery", href: "/gallery" },
     { label: "FAQ", href: "/#faq" },
   ],
   contactLinks: [
@@ -272,6 +272,18 @@ export const trustBadges = [
     title: "Reset between rentals",
     detail: "Steamed, checked, and staged again.",
   },
+];
+
+export const occasionMarqueeItems = [
+  "Mehndi",
+  "Mayoun",
+  "Dholki",
+  "Nikkah",
+  "Shaadi",
+  "Walima",
+  "Engagement",
+  "Bridal Shower",
+  "Intimate Celebrations",
 ];
 
 export const bundlePaths: BundlePath[] = [
@@ -1679,7 +1691,7 @@ export const faqItems: FAQItem[] = [
         answerIndex: 1,
         link: {
           label: "Google Maps Link",
-          href: "https://maps.app.goo.gl/fmsfzFiFrusxjU8s6",
+          href: siteConfig.pickupMapUrl,
           external: true,
         },
       },
