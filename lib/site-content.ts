@@ -33,11 +33,6 @@ type MediaAsset = {
   };
 };
 
-type Metric = {
-  label: string;
-  value: string;
-};
-
 export type PackagePreviewSlide = {
   title: string;
   description: string;
@@ -117,7 +112,6 @@ export type SiteConfig = {
   contactLinks: ContactLink[];
   socialLinks: ContactLink[];
   serviceNotes: string[];
-  highlights: Metric[];
   heroImage: MediaAsset;
   setupImage: MediaAsset;
   packagePreviewSlides: PackagePreviewSlide[];
@@ -145,54 +139,21 @@ export const siteConfig = {
   ],
   contactLinks: [
     {
-      label: "hello@balleballeplaceholder.com",
-      href: "mailto:hello@balleballeplaceholder.com",
+      label: "umihuss@gmail.com",
+      href: "mailto:umihuss@gmail.com",
     },
     {
-      label: "(201) 555-0118",
-      href: "tel:+12015550118",
-    },
-    {
-      label: "WhatsApp placeholder",
-      href: "https://wa.me/12015550118",
-      external: true,
+      label: "347-429-2996",
+      href: "tel:+13474292996",
     },
   ],
-  socialLinks: [
-    {
-      label: "Instagram",
-      href: "https://instagram.com/balleballeplaceholder",
-      external: true,
-    },
-    {
-      label: "Pinterest",
-      href: "https://pinterest.com/balleballeplaceholder",
-      external: true,
-    },
-  ],
-  serviceNotes: [
-    "Replace pickup radius, runner availability, and turnaround policies before launch.",
-    "This phase is purely front-end; availability, payment, and locking logic are intentionally absent.",
-  ],
-  highlights: [
-    {
-      label: "Fully customizable",
-      value: "Choose a pre-packed package or tailor the details to fit your celebration.",
-    },
-    {
-      label: "Easy and quick",
-      value: "No back-and-forth calls, no added hassle, and no unnecessary stress.",
-    },
-    {
-      label: "Flexible handoff",
-      value: "Pickup, drop-off, or delivery can be arranged based on what works best for you.",
-    },
-  ],
+  socialLinks: [],
+  serviceNotes: ["We deliver within NYC and LI for a flat-fee of $200."],
   heroImage: {
-    src: "/placeholders/hero-crop.svg",
-    alt: "Editorial placeholder crop showing the dholki setup in a portrait composition.",
-    width: 960,
-    height: 1280,
+    src: "/homepageimage.jpg",
+    alt: "Portrait hero image showing the event setup styling.",
+    width: 1080,
+    height: 1350,
   },
   setupImage: {
     src: "/placeholders/setup-full.svg",
@@ -257,20 +218,24 @@ export const siteConfig = {
 
 export const trustBadges = [
   {
-    title: "Textile-led styling",
-    detail: "Layered for warmth, not clutter.",
+    title: "Fully customizable",
+    detail: "Tailored packages",
   },
   {
-    title: "Pickup-ready packing",
-    detail: "Organized for a clean handoff.",
+    title: "Easy and quick",
+    detail: "Simple checkout process",
   },
   {
-    title: "Manual final confirmation",
-    detail: "High-touch service remains visible.",
+    title: "Premium items",
+    detail: "Curated high-end items",
   },
   {
-    title: "Reset between rentals",
-    detail: "Steamed, checked, and staged again.",
+    title: "Pickup-ready packaging",
+    detail: "Organized for a clean handoff",
+  },
+  {
+    title: "Flexible handoff",
+    detail: "Pickup or delivery options available",
   },
 ];
 
@@ -282,7 +247,6 @@ export const occasionMarqueeItems = [
   "Shaadi",
   "Walima",
   "Engagement",
-  "Bridal Shower",
   "Intimate Celebrations",
 ];
 
@@ -1634,13 +1598,13 @@ export const howItWorksSteps: HowItWorksStep[] = [
     step: "01",
     title: "Tailor the setup",
     detail:
-      "Fully customize your Dholki setup to fit your needs and only pay for the items you need, from the exact dhol to backdrop style, garland count, and more.",
+      "Fully customize your Dholki setup to fit your needs and only pay for the items you need, from the exact dhol to backdrop style, garland, and more.",
   },
   {
     step: "02",
-    title: "Start from your preferred path",
+    title: "Choose pickup or delivery",
     detail:
-      "Begin from a standard pre-packed package or customize the setup to fit your needs, then continue into availability once the details feel right.",
+      "Select the best way to make your event a success - easy as that!",
   },
 ];
 
@@ -1675,7 +1639,7 @@ export const faqItems: FAQItem[] = [
   {
     question: "How does pricing work?",
     answer: [
-      "You can pick either the standard pre-packaged Dholki package, which includes a 20% discount, or customize your setup individually by item.",
+      "You can pick the standard pre-packaged Dholki package or customize your setup individually by item.",
       "Each item has its own cost by event. An event rate covers a 4-day rental window total: up to 3 days with the items, with return due by day 4. You can also choose the quantity of each item.",
     ],
   },

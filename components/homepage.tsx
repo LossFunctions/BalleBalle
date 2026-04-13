@@ -31,76 +31,43 @@ export function Homepage() {
             <div className="absolute -left-24 top-16 h-56 w-56 rounded-full border border-indigo/8" />
             <div className="absolute right-8 top-10 h-32 w-32 rounded-full bg-marigold/10 blur-3xl" />
 
-            <div className="relative grid gap-12 xl:grid-cols-[minmax(0,1.04fr)_minmax(380px,0.96fr)] xl:items-center">
-              <div className="hero-sequence relative z-10 max-w-[42rem]">
-                <h1 className="max-w-[9ch] font-display text-[clamp(3.35rem,7.2vw,6.4rem)] leading-[0.95] tracking-[-0.06em] text-indigo">
-                  Fully customize your event setup
+            <div className="relative grid gap-10 xl:grid-cols-[minmax(0,1.04fr)_minmax(380px,0.96fr)] xl:items-stretch">
+              <div className="hero-sequence relative z-10 max-w-[42rem] xl:flex xl:h-full xl:max-w-none xl:flex-col xl:self-stretch">
+                <h1 className="max-w-[8ch] font-display text-[clamp(3.35rem,7.2vw,6.4rem)] leading-[0.95] tracking-[-0.06em] text-indigo">
+                  Fully customize your event
                 </h1>
-                <p className="mt-4 max-w-xl text-base leading-8 text-ink/72 sm:text-lg">
+                <p className="mt-8 max-w-xl text-base leading-8 text-ink/72 sm:text-lg">
                   Only pay for the pieces you need, from the exact dhol to
-                  backdrop styles, garlands, rugs, props, and finishing extras.
-                  If you want the simpler route, the ready-made package still
-                  lives right here on the homepage.
+                  backdrop styles, props, and many extras. Or simply choose the
+                  ready-made package!
                 </p>
 
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-10">
                   <Link
-                    className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-6 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-18px_rgba(17,17,17,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+                    className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-8 py-4 text-base font-semibold text-ink shadow-[0_22px_45px_-22px_rgba(17,17,17,0.42)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_52px_-22px_rgba(17,17,17,0.48)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
                     href="/get-started"
                   >
                     Get Started
                   </Link>
-                  <Link
-                    className="pressable inline-flex items-center justify-center rounded-full border border-ink/10 px-6 py-3 text-sm text-ink/75 transition hover:border-indigo/18 hover:bg-paper/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
-                    href="/gallery"
-                  >
-                    Browse gallery
-                  </Link>
                 </div>
 
-                <dl className="mt-8 grid gap-4 border-t border-ink/8 pt-6 sm:grid-cols-3">
-                  {siteConfig.highlights.map((item) => (
-                    <div key={item.label}>
-                      <dt className="text-[0.68rem] uppercase tracking-[0.22em] text-indigo/48">
-                        {item.label}
-                      </dt>
-                      <dd className="mt-2 text-sm leading-6 text-ink/72">
-                        {item.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
+                <div className="mt-8 xl:mt-auto" />
               </div>
 
-              <div className="hero-sequence relative">
+              <div className="hero-sequence relative self-start xl:-mt-2">
                 <div className="absolute -left-8 top-12 h-28 w-28 rounded-full bg-rose/20 blur-2xl" />
-                <div className="image-lift relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-ink/10 bg-paper shadow-[0_30px_90px_-55px_rgba(34,30,71,0.4)]">
+                <div className="image-lift relative aspect-[4/4.15] overflow-hidden rounded-[2.5rem] border border-ink/10 bg-paper shadow-[0_30px_90px_-55px_rgba(34,30,71,0.4)]">
                   <Image
                     alt={siteConfig.heroImage.alt}
-                    className="object-cover"
+                    className="object-cover object-top"
                     fill
                     priority
                     sizes="(min-width: 1280px) 36vw, (min-width: 768px) 42vw, 100vw"
                     src={siteConfig.heroImage.src}
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-indigo/35 via-transparent to-transparent" />
-                  <div className="absolute left-5 top-5 rounded-full border border-paper/30 bg-paper/78 px-4 py-2 text-[0.68rem] uppercase tracking-[0.22em] text-indigo backdrop-blur">
-                    Editorial hero crop
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 p-6 text-paper">
-                    <p className="text-[0.7rem] uppercase tracking-[0.24em] text-paper/72">
-                      Placeholder asset
-                    </p>
-                    <p className="mt-2 max-w-xs font-display text-3xl leading-none">
-                      Tall framing preserves the final composition from the
-                      start.
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
-
-            <div aria-hidden="true" className="motif-divider mt-10 h-10" />
           </div>
         </section>
 
@@ -108,11 +75,14 @@ export function Homepage() {
           className="mx-auto mt-14 max-w-7xl px-4 sm:px-6 lg:px-8"
           delay={120}
         >
-          <section aria-label="Trust markers" className="flex flex-wrap gap-3">
+          <section
+            aria-label="Trust markers"
+            className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+          >
             {trustBadges.map((badge) => (
               <article
                 key={badge.title}
-                className="rounded-full border border-ink/8 bg-paper/80 px-5 py-3 shadow-[0_16px_45px_-30px_rgba(34,30,71,0.28)] backdrop-blur"
+                className="h-full rounded-[1.9rem] border border-ink/8 bg-paper/80 px-5 py-4 shadow-[0_16px_45px_-30px_rgba(34,30,71,0.28)] backdrop-blur"
               >
                 <p className="text-sm font-semibold text-indigo">{badge.title}</p>
                 <p className="mt-1 text-xs leading-5 text-ink/62">
@@ -131,7 +101,7 @@ export function Homepage() {
             className="overflow-hidden rounded-[2.5rem] bg-indigo px-6 py-8 text-paper shadow-[0_35px_110px_-70px_rgba(34,30,71,0.82)] sm:px-10 sm:py-10 lg:px-12 lg:py-12"
             id="process"
           >
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="grid gap-8 lg:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.1fr)] lg:items-start">
               <div className="max-w-2xl">
                 <p className="text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-paper/60">
                   How it works
@@ -140,37 +110,30 @@ export function Homepage() {
                   Fully customize your Dholki setup to fit your needs.
                 </h2>
               </div>
-              <p className="max-w-xl text-sm leading-7 text-paper/72">
-                Only pay for the pieces you need, from the exact dhol to
-                backdrop style, garland count, and more. Start from a standard
-                pre-packed package or customize the setup to fit your needs.
-              </p>
-            </div>
 
-            <div aria-hidden="true" className="motif-divider mt-10 h-10 opacity-60" />
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              {howItWorksSteps.map((item) => (
-                <article
-                  key={item.step}
-                  className="rounded-[1.8rem] border border-paper/12 bg-paper/6 p-5 backdrop-blur lg:min-h-72"
-                >
-                  <p className="text-[0.72rem] uppercase tracking-[0.24em] text-paper/58">
-                    {item.step}
-                  </p>
-                  <h3 className="mt-4 font-display text-3xl leading-none">
-                    {item.title}
-                  </h3>
-                  <p className="mt-4 text-sm leading-7 text-paper/72">
-                    {item.detail}
-                  </p>
-                  {item.note ? (
-                    <p className="mt-3 text-sm leading-7 italic text-paper/62">
-                      {item.note}
+              <div className="grid gap-4 md:grid-cols-2">
+                {howItWorksSteps.map((item) => (
+                  <article
+                    key={item.step}
+                    className="rounded-[1.8rem] border border-paper/12 bg-paper/6 p-5 backdrop-blur lg:min-h-64"
+                  >
+                    <p className="text-[0.72rem] uppercase tracking-[0.24em] text-paper/58">
+                      {item.step}
                     </p>
-                  ) : null}
-                </article>
-              ))}
+                    <h3 className="mt-4 font-display text-3xl leading-none">
+                      {item.title}
+                    </h3>
+                    <p className="mt-4 text-sm leading-7 text-paper/72">
+                      {item.detail}
+                    </p>
+                    {item.note ? (
+                      <p className="mt-3 text-sm leading-7 italic text-paper/62">
+                        {item.note}
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         </Reveal>

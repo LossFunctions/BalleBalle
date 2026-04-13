@@ -44,7 +44,7 @@ type FlowSnapshot = {
 const FLOW_SCROLL_OFFSET = 112;
 const SIDEBAR_ADDED_STATUS = "Added";
 const EVENT_PRICING_POLICY =
-  "Each event rate covers a 4-day rental window total, including pickup or delivery and return by day 4. Late returns are $150 per extra day.";
+  "Each event rate covers a 4-day rental window total, including pickup or delivery and return by day 4.";
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -563,6 +563,10 @@ export function GetStartedFlow({
   const [scrollKey, setScrollKey] = useState(0);
   const flowPanelRef = useRef<HTMLDivElement | null>(null);
   const addOnsRef = useRef<HTMLDivElement | null>(null);
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
+  const sidebarStickySummaryRef = useRef<HTMLDivElement | null>(null);
+  const sidebarStepRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const sidebarAddOnsRef = useRef<HTMLButtonElement | null>(null);
   const pendingScrollTargetRef = useRef<ScrollTarget | null>(null);
   const customSnapshotRef = useRef<FlowSnapshot | null>(
     initialMode === "customize" ? cloneFlowSnapshot(initialSnapshot) : null,
@@ -592,6 +596,55 @@ export function GetStartedFlow({
       window.cancelAnimationFrame(frame);
     };
   }, [scrollKey]);
+
+  useEffect(() => {
+    const scrollContainer = sidebarScrollRef.current;
+
+    if (!scrollContainer) {
+      return;
+    }
+
+    const activeStepId = customizeSteps[currentStepIndex]?.id;
+
+    const activeSidebarItem = showAddOns
+      ? sidebarAddOnsRef.current
+      : activeStepId
+        ? sidebarStepRefs.current[activeStepId]
+        : null;
+
+    if (!activeSidebarItem) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const stickySummaryHeight = sidebarStickySummaryRef.current?.offsetHeight ?? 0;
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = activeSidebarItem.getBoundingClientRect();
+      const currentScrollTop = scrollContainer.scrollTop;
+      const topOffset = 0;
+      const nextScrollTop = Math.max(
+        0,
+        targetRect.top - containerRect.top + currentScrollTop - stickySummaryHeight - topOffset,
+      );
+
+      if (Math.abs(nextScrollTop - currentScrollTop) < 8) {
+        return;
+      }
+
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth";
+
+      scrollContainer.scrollTo({
+        top: nextScrollTop,
+        behavior,
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [currentStepIndex, showAddOns]);
 
   const completedCount = customizeSteps.filter(
     (step) => confirmedSelections[step.id] !== null,
@@ -1110,25 +1163,6 @@ export function GetStartedFlow({
     jumpToAddOns();
   };
 
-  const resetCustomizeFlow = () => {
-    const nextSnapshot = createFlowSnapshot(mode);
-
-    if (mode === "standard") {
-      standardSnapshotRef.current = cloneFlowSnapshot(nextSnapshot);
-    } else {
-      customSnapshotRef.current = cloneFlowSnapshot(nextSnapshot);
-    }
-
-    resetSelectedPreviewZoom();
-    setActiveVariantIds({});
-    setPreviewOptionIds({});
-    startTransition(() => {
-      applySnapshot(nextSnapshot);
-    });
-
-    queueScroll("flow");
-  };
-
   return (
     <div className="relative space-y-8">
       <section className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -1172,74 +1206,83 @@ export function GetStartedFlow({
         <aside className="xl:sticky xl:top-28 xl:self-start">
           <div className="overflow-hidden rounded-[2.2rem] border border-ink/8 bg-cream shadow-[0_30px_90px_-58px_rgba(34,30,71,0.36)]">
             <div className="pb-1.5 pl-1.5 pr-0.5 pt-1.5">
-              <div className="tailored-scroll relative rounded-[1.9rem] xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto">
+              <div
+                className="tailored-scroll relative rounded-[1.9rem] xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto"
+                ref={sidebarScrollRef}
+              >
                 <div className="p-5 xl:pr-4">
-                  <div className="rounded-[1.7rem] border border-indigo/10 bg-paper px-4 py-4 shadow-[0_18px_45px_-38px_rgba(34,30,71,0.3)]">
-                    <p className="text-[0.62rem] uppercase tracking-[0.24em] text-indigo/48">
-                      Live total
-                    </p>
-                    <div className="mt-2">
-                      <div>
-                        <p className="flex items-end whitespace-nowrap font-display leading-[0.92] tracking-[-0.05em] text-indigo">
-                          <span className="text-[2.56rem] sm:text-[2.84rem]">
-                            {currencyFormatter.format(subtotal)}
-                          </span>
-                          <span className="relative mb-[0.04em] ml-[0.04em] inline-block pr-4 text-[2.18rem] tracking-[-0.04em] sm:text-[2.46rem]">
-                            /event
-                            <button
-                              aria-controls="event-pricing-policy"
-                              aria-expanded={showEventPricingPolicy}
-                              aria-label="Show event pricing policy"
-                              className="absolute right-0 top-[0.42rem] inline-flex h-3.5 w-3.5 items-center justify-center text-indigo/32 transition hover:text-indigo/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:top-[0.48rem] sm:h-4 sm:w-4"
-                              onClick={() =>
-                                setShowEventPricingPolicy((currentValue) => !currentValue)
-                              }
-                              type="button"
-                            >
-                              <svg
-                                aria-hidden="true"
-                                className="h-3 w-3 sm:h-3.5 sm:w-3.5"
-                                fill="none"
-                                viewBox="0 0 16 16"
-                                xmlns="http://www.w3.org/2000/svg"
+                  <div
+                    className="sticky top-0 z-20 -mx-5 bg-cream/96 px-5 pt-1 backdrop-blur-sm xl:pr-4"
+                    ref={sidebarStickySummaryRef}
+                  >
+                    <div className="rounded-[1.7rem] border border-indigo/10 bg-paper px-4 py-4 shadow-[0_18px_45px_-38px_rgba(34,30,71,0.3)]">
+                      <p className="text-[0.62rem] uppercase tracking-[0.24em] text-indigo/48">
+                        Live total
+                      </p>
+                      <div className="mt-2">
+                        <div>
+                          <p className="flex items-end whitespace-nowrap font-display leading-[0.92] tracking-[-0.05em] text-indigo">
+                            <span className="text-[2.56rem] sm:text-[2.84rem]">
+                              {currencyFormatter.format(subtotal)}
+                            </span>
+                            <span className="relative mb-[0.04em] ml-[0.04em] inline-block pr-4 text-[2.18rem] tracking-[-0.04em] sm:text-[2.46rem]">
+                              /event
+                              <button
+                                aria-controls="event-pricing-policy"
+                                aria-expanded={showEventPricingPolicy}
+                                aria-label="Show event pricing policy"
+                                className="absolute right-0 top-[0.42rem] inline-flex h-3.5 w-3.5 items-center justify-center text-indigo/32 transition hover:text-indigo/52 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:top-[0.48rem] sm:h-4 sm:w-4"
+                                onClick={() =>
+                                  setShowEventPricingPolicy((currentValue) => !currentValue)
+                                }
+                                type="button"
                               >
-                                <circle
-                                  cx="8"
-                                  cy="8"
-                                  r="5.4"
-                                  stroke="currentColor"
-                                  strokeWidth="1.1"
-                                />
-                                <circle cx="8" cy="5.15" r="0.7" fill="currentColor" />
-                                <path
-                                  d="M8 7.1V10.8"
-                                  stroke="currentColor"
-                                  strokeLinecap="round"
-                                  strokeWidth="1.1"
-                                />
-                              </svg>
-                            </button>
-                          </span>
-                        </p>
-                        {showEventPricingPolicy ? (
-                          <div
-                            className="mt-3 rounded-[1.15rem] border border-indigo/10 bg-cream px-3 py-3 text-sm leading-6 text-ink/66"
-                            id="event-pricing-policy"
-                          >
-                            {EVENT_PRICING_POLICY}
-                          </div>
-                        ) : null}
+                                <svg
+                                  aria-hidden="true"
+                                  className="h-3 w-3 sm:h-3.5 sm:w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 16 16"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <circle
+                                    cx="8"
+                                    cy="8"
+                                    r="5.4"
+                                    stroke="currentColor"
+                                    strokeWidth="1.1"
+                                  />
+                                  <circle cx="8" cy="5.15" r="0.7" fill="currentColor" />
+                                  <path
+                                    d="M8 7.1V10.8"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeWidth="1.1"
+                                  />
+                                </svg>
+                              </button>
+                            </span>
+                          </p>
+                          {showEventPricingPolicy ? (
+                            <div
+                              className="mt-3 rounded-[1.15rem] border border-indigo/10 bg-cream px-3 py-3 text-sm leading-6 text-ink/66"
+                              id="event-pricing-policy"
+                            >
+                              {EVENT_PRICING_POLICY}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="mt-8 space-y-3">
                     <div
-                      className={`w-full overflow-hidden rounded-full border border-indigo/10 bg-paper/94 py-3 shadow-[0_20px_40px_-34px_rgba(34,30,71,0.35)] backdrop-blur ${
+                      className={`mt-4 w-full overflow-hidden rounded-full border border-indigo/10 bg-paper/94 py-3 shadow-[0_20px_40px_-34px_rgba(34,30,71,0.35)] backdrop-blur ${
                         useCompactProgressTrack ? "px-3 sm:px-4" : "px-5"
                       }`}
                     >
-                      <div className="flex items-center">
+                      <div
+                        className={`flex items-center justify-between ${
+                          useCompactProgressTrack ? "gap-1.5 sm:gap-2" : "gap-2 sm:gap-2.5"
+                        }`}
+                      >
                         {customizeSteps.map((step, index) => {
                           const dotClasses =
                             index < completedCount
@@ -1254,40 +1297,23 @@ export function GetStartedFlow({
                                   ? "h-1.5 w-1.5 border-indigo/12 bg-paper sm:h-2 sm:w-2"
                                   : "h-2 w-2 border-indigo/12 bg-paper sm:h-2.5 sm:w-2.5";
 
-                          const segmentClasses =
-                            index < completedCount - 1
-                              ? "bg-[linear-gradient(90deg,rgba(11,123,76,0.88),rgba(11,123,76,0.54))]"
-                              : "bg-indigo/8";
-
                           return (
-                            <div
-                              className={
-                                index === lastStepIndex
-                                  ? "flex shrink-0 items-center"
-                                  : "flex min-w-0 flex-1 items-center"
-                              }
+                            <span
+                              aria-hidden="true"
+                              className={`relative block shrink-0 rounded-full border transition-all duration-300 ${dotClasses}`}
                               key={`sidebar-progress-${step.id}`}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className={`relative block shrink-0 rounded-full border transition-all duration-300 ${dotClasses}`}
-                              />
-                              {index < customizeSteps.length - 1 ? (
-                                <span
-                                  aria-hidden="true"
-                                  className={`h-[0.14rem] flex-1 rounded-full transition-all duration-300 sm:h-[0.16rem] ${
-                                    useCompactProgressTrack
-                                      ? "mx-[0.18rem] sm:mx-0.75"
-                                      : "mx-0.5 sm:mx-1"
-                                  } ${segmentClasses}`}
-                                />
-                              ) : null}
-                            </div>
+                            />
                           );
                         })}
                       </div>
                     </div>
+                    <div
+                      aria-hidden="true"
+                      className="h-8 bg-[linear-gradient(180deg,rgba(249,248,244,0.98),rgba(249,248,244,0.94)_54%,rgba(249,248,244,0))]"
+                    />
+                  </div>
 
+                  <div className="mt-8 space-y-3">
                     {customizeSteps.map((step, index) => {
                       const summary = selectionStateForStep(step.id);
                       const active = !showAddOns && index === currentStepIndex;
@@ -1315,6 +1341,9 @@ export function GetStartedFlow({
                           className={`pressable w-full rounded-[1.6rem] border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream ${itemClasses}`}
                           key={step.id}
                           onClick={() => jumpToStep(index)}
+                          ref={(element) => {
+                            sidebarStepRefs.current[step.id] = element;
+                          }}
                           type="button"
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -1353,6 +1382,7 @@ export function GetStartedFlow({
                           : "border-ink/8 bg-paper"
                     }`}
                     onClick={handleAddOnsCardClick}
+                    ref={sidebarAddOnsRef}
                     type="button"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -1414,24 +1444,22 @@ export function GetStartedFlow({
                     ) : null}
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[1.5rem] border border-mehendi/12 bg-mehendi/7 px-4 py-3">
-                      <p className="text-[0.72rem] uppercase tracking-[0.24em] text-mehendi">
-                        Selected
-                      </p>
-                      <p className="mt-2 font-display text-3xl leading-none text-indigo">
-                        {selectedAddOnsCount}
-                      </p>
-                    </div>
-                    <div className="rounded-[1.5rem] border border-indigo/10 bg-cream px-4 py-3">
-                      <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
-                        Subtotal
-                      </p>
-                      <p className="mt-2 font-display text-3xl leading-none text-indigo">
-                        {formatEventPrice(addOnsSubtotal)}
-                      </p>
-                    </div>
-                  </div>
+                  {allStepsCompleted ? (
+                    <Link
+                      className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                      href="/availability"
+                    >
+                      {selectedAddOnsCount > 0 ? "Checkout" : "Select dates"}
+                    </Link>
+                  ) : (
+                    <button
+                      className="inline-flex items-center justify-center rounded-full border border-ink/10 bg-paper px-5 py-3 text-sm text-ink/42"
+                      disabled
+                      type="button"
+                    >
+                      Finish the core setup first
+                    </button>
+                  )}
                 </div>
 
 	                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1548,35 +1576,6 @@ export function GetStartedFlow({
                           .join(" ")
                       : "No extras selected yet. Leave this section empty if you only want the core setup."}
                   </p>
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  {allStepsCompleted ? (
-                    <Link
-                      className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                      href="/availability"
-                    >
-                      Continue to availability
-                    </Link>
-                  ) : (
-                    <button
-                      className="inline-flex items-center justify-center rounded-full border border-ink/10 bg-paper px-5 py-3 text-sm text-ink/42"
-                      disabled
-                      type="button"
-                    >
-                      Finish the core setup first
-                    </button>
-                  )}
-
-                  <button
-                    className="pressable inline-flex items-center justify-center rounded-full border border-ink/10 px-5 py-3 text-sm text-ink/78 transition hover:border-indigo/18 hover:bg-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                    onClick={resetCustomizeFlow}
-                    type="button"
-                  >
-                    {mode === "standard"
-                      ? "Reload standard package"
-                      : "Restart custom setup"}
-                  </button>
                 </div>
               </section>
             ) : (

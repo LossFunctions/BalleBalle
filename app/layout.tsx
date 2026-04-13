@@ -17,7 +17,7 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Balle Balle | Editorial Dholki Rental",
   description:
-    "A design-first homepage prototype for a premium dholki rental service.",
+    "Customize South Asian event rentals with curated styling, delivery, and pickup options.",
 };
 
 export default function RootLayout({
