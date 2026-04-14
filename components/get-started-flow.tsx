@@ -20,6 +20,7 @@ import {
   type CustomizeOption,
   type CustomizeStep,
 } from "@/lib/site-content";
+import { encodeDholCartItems, type DholCartItem } from "@/lib/dhol-checkout";
 import dottedLineImage from "@/Dottedline.png";
 
 type PathMode = BundlePath["id"];
@@ -318,6 +319,9 @@ const getSelectionTotal = (step: CustomizeStep, selection: StepSelection) => {
 
 const formatEventPrice = (amount: number) =>
   `${currencyFormatter.format(amount)}/event`;
+
+const getCheckoutQueryValue = (items: DholCartItem[]) =>
+  encodeURIComponent(encodeDholCartItems(items));
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -684,6 +688,36 @@ export function GetStartedFlow({
   const subtotal = coreSubtotal + addOnsSubtotal;
   const addOnsStatus =
     selectedAddOnsCount > 0 ? SIDEBAR_ADDED_STATUS : "Pending";
+  const dholStep = customizeSteps.find((step) => step.id === "dhol") ?? null;
+  const dholSelection = dholStep ? getEffectiveSelection(dholStep.id) : null;
+  const dholCheckoutItems =
+    dholStep && dholSelection && dholSelection !== "skip"
+      ? dholStep.options.reduce<DholCartItem[]>((items, option) => {
+          const quantity = getOptionSelectionQuantity(dholSelection[option.id]);
+
+          if (quantity <= 0) {
+            return items;
+          }
+
+          items.push({
+            id: option.id,
+            quantity,
+          });
+
+          return items;
+        }, [])
+      : [];
+  const dholCheckoutCount = dholCheckoutItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const dholCheckoutSubtotal = dholStep
+    ? getSelectionTotal(dholStep, dholSelection)
+    : 0;
+  const dholCheckoutHref =
+    dholCheckoutItems.length > 0
+      ? `/checkout?items=${getCheckoutQueryValue(dholCheckoutItems)}`
+      : null;
   const currentProgressIndex = showAddOns ? null : currentStepIndex;
   const progressStepCount = customizeSteps.length;
   const useCompactProgressTrack = progressStepCount >= 11;
@@ -1273,6 +1307,41 @@ export function GetStartedFlow({
                         </div>
                       </div>
                     </div>
+                    <div className="mt-4 rounded-[1.7rem] border border-mehendi/16 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] px-4 py-4 shadow-[0_18px_45px_-38px_rgba(34,30,71,0.22)]">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-[0.62rem] uppercase tracking-[0.24em] text-indigo/48">
+                            Online Checkout
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-ink/72">
+                            Only dhol rentals are wired to secure payment right
+                            now. The rest of the setup builder remains planning-only.
+                          </p>
+                          {dholCheckoutHref ? (
+                            <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
+                              {dholCheckoutCount} selected •{" "}
+                              {formatEventPrice(dholCheckoutSubtotal)}
+                            </p>
+                          ) : null}
+                        </div>
+                        {dholCheckoutHref ? (
+                          <Link
+                            className="pressable inline-flex shrink-0 items-center justify-center rounded-full bg-marigold px-4 py-2 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                            href={dholCheckoutHref}
+                          >
+                            Checkout dhols
+                          </Link>
+                        ) : (
+                          <button
+                            className="inline-flex shrink-0 items-center justify-center rounded-full border border-ink/10 bg-paper px-4 py-2 text-sm text-ink/42"
+                            disabled
+                            type="button"
+                          >
+                            Pick a dhol first
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div
                       className={`mt-4 w-full overflow-hidden rounded-full border border-indigo/10 bg-paper/94 py-3 shadow-[0_20px_40px_-34px_rgba(34,30,71,0.35)] backdrop-blur ${
                         useCompactProgressTrack ? "px-3 sm:px-4" : "px-5"
@@ -1449,7 +1518,9 @@ export function GetStartedFlow({
                       className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
                       href="/availability"
                     >
-                      {selectedAddOnsCount > 0 ? "Checkout" : "Select dates"}
+                      {selectedAddOnsCount > 0
+                        ? "Select dates for full setup"
+                        : "Select dates"}
                     </Link>
                   ) : (
                     <button
