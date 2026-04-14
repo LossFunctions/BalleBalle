@@ -12,6 +12,7 @@ export type DholCartItem = {
 };
 
 export type DholCatalogItem = {
+  active: boolean;
   id: string;
   title: string;
   subtitle: string;
@@ -77,6 +78,7 @@ if (!dholStep) {
 }
 
 export const dholCatalog: DholCatalogItem[] = dholStep.options.map((option) => ({
+  active: true,
   id: option.id,
   title: option.title,
   subtitle: option.subtitle,

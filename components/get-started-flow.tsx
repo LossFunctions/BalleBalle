@@ -20,7 +20,11 @@ import {
   type CustomizeOption,
   type CustomizeStep,
 } from "@/lib/site-content";
-import { encodeDholCartItems, type DholCartItem } from "@/lib/dhol-checkout";
+import {
+  encodeDholCartItems,
+  type DholCatalogItem,
+  type DholCartItem,
+} from "@/lib/dhol-checkout";
 import dottedLineImage from "@/Dottedline.png";
 
 type PathMode = BundlePath["id"];
@@ -287,35 +291,8 @@ const cloneStepSelectionRecord = (
     ]),
   );
 
-const getSelectionCount = (selection: StepSelection) => {
-  if (!selection || selection === "skip") {
-    return 0;
-  }
-
-  return Object.values(selection).reduce(
-    (sum, optionSelection) => sum + getOptionSelectionQuantity(optionSelection),
-    0,
-  );
-};
-
 const getOptionPrice = (step: CustomizeStep, option: CustomizeOption) =>
   option.pricePerDay ?? step.pricePerDay;
-
-const getSelectionTotal = (step: CustomizeStep, selection: StepSelection) => {
-  if (!selection || selection === "skip") {
-    return 0;
-  }
-
-  return step.options.reduce((sum, option) => {
-    const quantity = getOptionSelectionQuantity(selection[option.id]);
-
-    if (quantity <= 0) {
-      return sum;
-    }
-
-    return sum + getOptionPrice(step, option) * quantity;
-  }, 0);
-};
 
 const formatEventPrice = (amount: number) =>
   `${currencyFormatter.format(amount)}/event`;
@@ -525,10 +502,12 @@ const getOptionImages = (option: CustomizeOption) => {
 
 type GetStartedFlowProps = {
   initialMode?: BundlePath["id"];
+  liveDholCatalog?: DholCatalogItem[];
 };
 
 export function GetStartedFlow({
   initialMode = "customize",
+  liveDholCatalog = [],
 }: GetStartedFlowProps) {
   const [initialSnapshot] = useState<FlowSnapshot>(() =>
     createFlowSnapshot(initialMode),
@@ -572,6 +551,60 @@ export function GetStartedFlow({
   const sidebarStepRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const sidebarAddOnsRef = useRef<HTMLButtonElement | null>(null);
   const pendingScrollTargetRef = useRef<ScrollTarget | null>(null);
+  const dholCatalogById = new Map(
+    liveDholCatalog.map((item) => [item.id, item] as const),
+  );
+  const getLiveDholItem = (optionId: string) => dholCatalogById.get(optionId) ?? null;
+  const getResolvedOptionPrice = (step: CustomizeStep, option: CustomizeOption) =>
+    step.id === "dhol"
+      ? getLiveDholItem(option.id)?.unitAmount ?? getOptionPrice(step, option)
+      : getOptionPrice(step, option);
+  const getResolvedSelectionTotal = (
+    step: CustomizeStep,
+    selection: StepSelection,
+  ) => {
+    if (!selection || selection === "skip") {
+      return 0;
+    }
+
+    return step.options.reduce((sum, option) => {
+      const quantity = getOptionSelectionQuantity(selection[option.id]);
+
+      if (quantity <= 0 || isDholOptionGloballyUnavailable(step, option)) {
+        return sum;
+      }
+
+      return sum + getResolvedOptionPrice(step, option) * quantity;
+    }, 0);
+  };
+  const getResolvedSelectionCount = (
+    step: CustomizeStep,
+    selection: StepSelection,
+  ) => {
+    if (!selection || selection === "skip") {
+      return 0;
+    }
+
+    return step.options.reduce((sum, option) => {
+      if (isDholOptionGloballyUnavailable(step, option)) {
+        return sum;
+      }
+
+      return sum + getOptionSelectionQuantity(selection[option.id]);
+    }, 0);
+  };
+  const isDholOptionGloballyUnavailable = (
+    step: CustomizeStep,
+    option: CustomizeOption,
+  ) => {
+    if (step.id !== "dhol") {
+      return false;
+    }
+
+    const liveItem = getLiveDholItem(option.id);
+
+    return Boolean(liveItem && (!liveItem.active || liveItem.inventoryCount <= 0));
+  };
   const customSnapshotRef = useRef<FlowSnapshot | null>(
     initialMode === "customize" ? cloneFlowSnapshot(initialSnapshot) : null,
   );
@@ -670,15 +703,19 @@ export function GetStartedFlow({
       ? currentSelectionState
       : null;
   const selectedCurrentOptions = currentStep.options.filter(
-    (option) => hasOptionSelection(currentSelectionMap?.[option.id]),
+    (option) =>
+      hasOptionSelection(currentSelectionMap?.[option.id]) &&
+      !isDholOptionGloballyUnavailable(currentStep, option),
   );
   const canAdvanceCurrentStep =
-    currentSelectionState === "skip" || getSelectionCount(currentSelectionState) > 0;
+    currentSelectionState === "skip" ||
+    getResolvedSelectionCount(currentStep, currentSelectionState) > 0;
   const lastStepIndex = customizeSteps.length - 1;
   const isLastStep = currentStepIndex === lastStepIndex;
   const getEffectiveSelection = (stepId: string) => draftSelections[stepId];
   const coreSubtotal = customizeSteps.reduce(
-    (sum, step) => sum + getSelectionTotal(step, getEffectiveSelection(step.id)),
+    (sum, step) =>
+      sum + getResolvedSelectionTotal(step, getEffectiveSelection(step.id)),
     0,
   );
   const addOnsSubtotal = selectedAddOns.reduce(
@@ -695,7 +732,10 @@ export function GetStartedFlow({
       ? dholStep.options.reduce<DholCartItem[]>((items, option) => {
           const quantity = getOptionSelectionQuantity(dholSelection[option.id]);
 
-          if (quantity <= 0) {
+          if (
+            quantity <= 0 ||
+            isDholOptionGloballyUnavailable(dholStep, option)
+          ) {
             return items;
           }
 
@@ -712,7 +752,7 @@ export function GetStartedFlow({
     0,
   );
   const dholCheckoutSubtotal = dholStep
-    ? getSelectionTotal(dholStep, dholSelection)
+    ? getResolvedSelectionTotal(dholStep, dholSelection)
     : 0;
   const dholCheckoutHref =
     dholCheckoutItems.length > 0
@@ -927,10 +967,12 @@ export function GetStartedFlow({
     }
 
     const selectedOptions = step.options.filter(
-      (option) => hasOptionSelection(selection[option.id]),
+      (option) =>
+        hasOptionSelection(selection[option.id]) &&
+        !isDholOptionGloballyUnavailable(step, option),
     );
-    const selectedCount = getSelectionCount(selection);
-    const total = getSelectionTotal(step, selection);
+    const selectedCount = getResolvedSelectionCount(step, selection);
+    const total = getResolvedSelectionTotal(step, selection);
 
     if (selectedOptions.length === 0 || selectedCount === 0) {
       return {
@@ -1621,7 +1663,7 @@ export function GetStartedFlow({
                               />
                             ) : null}
                             <span className={PRICE_PILL_CLASSES}>
-                              {formatEventPrice(option.pricePerDay)}
+                              {formatEventPrice(getResolvedOptionPrice(currentStep, option))}
                             </span>
                           </div>
                         </div>
@@ -1685,12 +1727,27 @@ export function GetStartedFlow({
                   </div>
                 </div>
 
+                {currentStep.id === "dhol" ? (
+                  <div className="mt-6 rounded-[1.6rem] border border-indigo/10 bg-cream px-4 py-4 text-sm leading-6 text-ink/68">
+                    Dhol pricing and global stock now sync from live inventory.
+                    Exact booking availability still depends on the rental dates
+                    entered at checkout.
+                  </div>
+                ) : null}
+
                 <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {currentStep.options.map((option) => {
                     const optionSelection = currentSelectionMap?.[option.id];
                     const hasVariants = Boolean(option.variants?.length);
                     const quantity = getOptionSelectionQuantity(optionSelection);
                     const selected = quantity > 0;
+                    const liveDholItem = currentStep.id === "dhol"
+                      ? getLiveDholItem(option.id)
+                      : null;
+                    const optionIsSoldOut = isDholOptionGloballyUnavailable(
+                      currentStep,
+                      option,
+                    );
                     const selectedBadgeLabel =
                       !hasVariants && selected
                         ? quantity > 1
@@ -1721,19 +1778,26 @@ export function GetStartedFlow({
                       : 0;
                     const optionImagePresentation =
                       getOptionImagePresentation(activeImage);
-                    const cardClasses = selected
-                      ? "border-mehendi/28 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.96))] shadow-[0_22px_44px_-32px_rgba(11,123,76,0.45)]"
-                      : hasVariants
-                        ? "border-ink/8 bg-cream"
-                        : "border-ink/8 bg-cream hover:-translate-y-1 hover:border-indigo/14 hover:shadow-[0_22px_44px_-34px_rgba(34,30,71,0.28)]";
+                    const cardClasses = optionIsSoldOut
+                      ? "cursor-not-allowed border-rose-200/80 bg-rose-50/70 opacity-72"
+                      : selected
+                        ? "border-mehendi/28 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.96))] shadow-[0_22px_44px_-32px_rgba(11,123,76,0.45)]"
+                        : hasVariants
+                          ? "border-ink/8 bg-cream"
+                          : "border-ink/8 bg-cream hover:-translate-y-1 hover:border-indigo/14 hover:shadow-[0_22px_44px_-34px_rgba(34,30,71,0.28)]";
 
                     return (
                       <div
-                        aria-pressed={hasVariants ? undefined : selected}
-                        className={`group rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper cursor-pointer ${cardClasses}`}
+                        aria-disabled={optionIsSoldOut || undefined}
+                        aria-pressed={hasVariants || optionIsSoldOut ? undefined : selected}
+                        className={`group rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
+                          optionIsSoldOut ? "" : "cursor-pointer"
+                        } ${cardClasses}`}
                         key={option.id}
                         onClick={
-                          hasVariants
+                          optionIsSoldOut
+                            ? undefined
+                            : hasVariants
                             ? () =>
                                 focusOptionPreview(
                                   currentStep.id,
@@ -1747,15 +1811,15 @@ export function GetStartedFlow({
                             : () => handleSelect(currentStep.id, option)
                         }
                         onKeyDown={
-                          hasVariants
+                          hasVariants || optionIsSoldOut
                             ? undefined
                             : (event) =>
                                 handleSelectableCardKeyDown(event, () =>
                                   handleSelect(currentStep.id, option),
                                 )
                         }
-                        role={hasVariants ? undefined : "button"}
-                        tabIndex={hasVariants ? undefined : 0}
+                        role={hasVariants || optionIsSoldOut ? undefined : "button"}
+                        tabIndex={hasVariants || optionIsSoldOut ? undefined : 0}
                       >
                         <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
                           <div className={`relative ${optionImagePresentation.frameClassName}`}>
@@ -1786,6 +1850,11 @@ export function GetStartedFlow({
                           {selected && selectedBadgeLabel ? (
                             <span className="absolute left-4 top-4 rounded-full border border-mehendi/10 bg-paper/88 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-mehendi backdrop-blur">
                               {selectedBadgeLabel}
+                            </span>
+                          ) : null}
+                          {optionIsSoldOut ? (
+                            <span className="absolute left-4 top-4 rounded-full border border-rose-300/70 bg-paper/90 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-rose-700 backdrop-blur">
+                              Sold out
                             </span>
                           ) : null}
                           {isVideoAsset(activeImage) ? (
@@ -1837,6 +1906,15 @@ export function GetStartedFlow({
                           <p className="mt-2 text-[0.72rem] uppercase tracking-[0.2em] text-indigo/48">
                             {option.subtitle}
                           </p>
+                          {liveDholItem && currentStep.id === "dhol" ? (
+                            <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/44">
+                              {liveDholItem.inventoryCount > 0
+                                ? liveDholItem.inventoryCount === 1
+                                  ? "Limited stock"
+                                  : `${liveDholItem.inventoryCount} in inventory`
+                                : "No inventory available"}
+                            </p>
+                          ) : null}
                           {hasVariants ? (
                             <>
                               <div className="mt-5 flex items-start justify-between gap-2">
@@ -1935,7 +2013,9 @@ export function GetStartedFlow({
                                   </div>
                                 )}
                                 <span className={PRICE_PILL_CLASSES}>
-                                  {formatEventPrice(getOptionPrice(currentStep, option))}
+                                  {formatEventPrice(
+                                    getResolvedOptionPrice(currentStep, option),
+                                  )}
                                 </span>
                               </div>
                             </>
@@ -1944,11 +2024,11 @@ export function GetStartedFlow({
                               className={`mt-4 flex items-center ${
                                 selected ? "justify-between gap-3" : "justify-end"
                               }`}
-                            >
-                              {selected ? (
-                                <QuantityStepper
-                                  decrementLabel={`Decrease quantity for ${option.title}`}
-                                  incrementLabel={`Increase quantity for ${option.title}`}
+                              >
+                                {selected && !optionIsSoldOut ? (
+                                  <QuantityStepper
+                                    decrementLabel={`Decrease quantity for ${option.title}`}
+                                    incrementLabel={`Increase quantity for ${option.title}`}
                                   onDecrement={() =>
                                     updateStepOptionQuantity(
                                       currentStep.id,
@@ -1967,7 +2047,9 @@ export function GetStartedFlow({
                                 />
                               ) : null}
                               <span className={PRICE_PILL_CLASSES}>
-                                {formatEventPrice(getOptionPrice(currentStep, option))}
+                                {formatEventPrice(
+                                  getResolvedOptionPrice(currentStep, option),
+                                )}
                               </span>
                             </div>
                           )}

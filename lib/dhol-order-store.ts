@@ -171,6 +171,7 @@ const orderSelection = `
 `;
 
 const mapOrderItemRowToResolvedCartItem = (row: OrderItemRow): DholResolvedCartItem => ({
+  active: true,
   id: row.product_id,
   title: row.title_snapshot,
   subtitle: row.subtitle_snapshot,
@@ -589,6 +590,7 @@ export const rebuildStoredDholOrderQuotes = async () => {
     const productIds = order.items.map((item) => item.id);
     const currentCatalog = await getDholProductsByIds(productIds);
     const fallbackCatalog = order.items.map<DholCatalogItem>((item) => ({
+      active: true,
       id: item.id,
       title: item.title,
       subtitle: item.subtitle,

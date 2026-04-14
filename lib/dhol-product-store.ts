@@ -15,6 +15,7 @@ type ProductRow = {
 };
 
 const mapProductRowToCatalogItem = (row: ProductRow): DholCatalogItem => ({
+  active: row.active,
   id: row.id,
   title: row.title,
   subtitle: row.subtitle,
@@ -25,26 +26,40 @@ const mapProductRowToCatalogItem = (row: ProductRow): DholCatalogItem => ({
   unitAmount: row.base_unit_amount_cents / 100,
 });
 
-const normalizeProductRows = (rows: ProductRow[] | null | undefined) =>
+const normalizeProductRows = (
+  rows: ProductRow[] | null | undefined,
+  {
+    activeOnly = true,
+  }: {
+    activeOnly?: boolean;
+  } = {},
+) =>
   (rows ?? [])
-    .filter((row) => row.category === "dhol" && row.active)
+    .filter((row) => row.category === "dhol" && (!activeOnly || row.active))
     .map(mapProductRowToCatalogItem);
 
-export const listActiveDholProducts = async () => {
+export const listDholProducts = async ({
+  activeOnly = false,
+}: {
+  activeOnly?: boolean;
+} = {}) => {
   const { data, error } = await getSupabaseAdmin()
     .from("products")
     .select(
       "id, title, subtitle, selection_summary, image_src, image_alt, inventory_count, base_unit_amount_cents, active, category",
     )
     .eq("category", "dhol")
-    .eq("active", true)
     .order("title", { ascending: true });
 
   if (error) {
     throw new Error(`Unable to load dhol products from Supabase: ${error.message}`);
   }
 
-  return normalizeProductRows(data as ProductRow[] | null);
+  return normalizeProductRows(data as ProductRow[] | null, { activeOnly });
+};
+
+export const listActiveDholProducts = async () => {
+  return listDholProducts({ activeOnly: true });
 };
 
 export const getDholProductsByIds = async (productIds: string[]) => {
@@ -69,7 +84,7 @@ export const getDholProductsByIds = async (productIds: string[]) => {
     throw new Error(`Unable to load dhol products from Supabase: ${error.message}`);
   }
 
-  return normalizeProductRows(data as ProductRow[] | null).sort(
+  return normalizeProductRows(data as ProductRow[] | null, { activeOnly: true }).sort(
     (left, right) => uniqueProductIds.indexOf(left.id) - uniqueProductIds.indexOf(right.id),
   );
 };
