@@ -245,6 +245,20 @@ export const resolveDholCartItemsFromCatalog = (
 export const resolveDholCartItems = (items: DholCartItem[]) =>
   resolveDholCartItemsFromCatalog(items, dholCatalog);
 
+export const getMissingDholCartItemIds = (
+  items: DholCartItem[],
+  catalog: DholCatalogItem[],
+) => {
+  const catalogIds = new Set(catalog.map((item) => item.id));
+  const requestedIds = new Set(
+    items
+      .map((item) => item.id.trim())
+      .filter(Boolean),
+  );
+
+  return Array.from(requestedIds).filter((id) => !catalogIds.has(id));
+};
+
 export const createDholQuoteFromCatalog = ({
   catalog,
   items,

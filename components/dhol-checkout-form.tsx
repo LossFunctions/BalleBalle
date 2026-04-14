@@ -24,6 +24,7 @@ type DholCheckoutFormProps = {
   initialFulfillmentMethod: FulfillmentMethod;
   initialPickupDate?: string;
   initialReturnDate?: string;
+  unavailableReason?: string | null;
   wasCanceled?: boolean;
 };
 
@@ -88,6 +89,7 @@ export function DholCheckoutForm({
   initialFulfillmentMethod,
   initialPickupDate,
   initialReturnDate,
+  unavailableReason = null,
   wasCanceled = false,
 }: DholCheckoutFormProps) {
   const [fulfillmentMethod, setFulfillmentMethod] =
@@ -250,8 +252,8 @@ export function DholCheckoutForm({
 
         {!checkoutEnabled ? (
           <div className="mt-6 rounded-[1.6rem] border border-rose-300/70 bg-rose-50/80 p-4 text-sm leading-6 text-rose-900/82">
-            Stripe is not configured yet. Add `STRIPE_SECRET_KEY` before using
-            this checkout page.
+            {unavailableReason ??
+              "Stripe is not configured yet. Add `STRIPE_SECRET_KEY` before using this checkout page."}
           </div>
         ) : null}
 

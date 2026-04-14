@@ -4,7 +4,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import {
   decodeDholCartItems,
+  dholCatalog,
+  getMissingDholCartItemIds,
   isFulfillmentMethod,
+  resolveDholCartItemsFromCatalog,
 } from "@/lib/dhol-checkout";
 import { getDholProductsByIds } from "@/lib/dhol-product-store";
 
@@ -29,7 +32,6 @@ export default async function CheckoutPage({
 }: CheckoutPageProps) {
   const resolvedSearchParams = await searchParams;
   const items = decodeDholCartItems(getSingleValue(resolvedSearchParams?.items));
-  const liveCatalog = await getDholProductsByIds(items.map((item) => item.id));
   const pickupDate = getSingleValue(resolvedSearchParams?.pickupDate);
   const returnDate = getSingleValue(resolvedSearchParams?.returnDate);
   const fulfillmentMethodValue = getSingleValue(
@@ -39,6 +41,28 @@ export default async function CheckoutPage({
     ? fulfillmentMethodValue
     : "pickup";
   const wasCanceled = getSingleValue(resolvedSearchParams?.canceled) === "1";
+  let checkoutUnavailableReason: string | null = null;
+  let catalog = dholCatalog;
+
+  if (items.length > 0) {
+    try {
+      const liveCatalog = await getDholProductsByIds(items.map((item) => item.id));
+      const missingItemIds = getMissingDholCartItemIds(items, liveCatalog);
+
+      if (missingItemIds.length > 0) {
+        checkoutUnavailableReason =
+          "One or more selected dhols are not available in live inventory right now. Return to the builder and reselect your items.";
+      } else if (liveCatalog.length > 0) {
+        catalog = liveCatalog;
+      }
+    } catch (error) {
+      console.error("Unable to load live dhol catalog for checkout.", error);
+      checkoutUnavailableReason =
+        "Live checkout inventory is not configured on this deployment yet. Add the Supabase environment variables to your hosting provider and redeploy.";
+    }
+  }
+
+  const selectedCartItems = resolveDholCartItemsFromCatalog(items, catalog);
 
   return (
     <div className="min-h-screen">
@@ -49,14 +73,17 @@ export default async function CheckoutPage({
 
       <main id="main" className="pb-24">
         <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8 lg:pt-10">
-          {liveCatalog.length > 0 ? (
+          {selectedCartItems.length > 0 ? (
             <DholCheckoutForm
-              catalog={liveCatalog}
+              catalog={catalog}
               cartItems={items}
-              checkoutEnabled={Boolean(process.env.STRIPE_SECRET_KEY)}
+              checkoutEnabled={Boolean(
+                process.env.STRIPE_SECRET_KEY && !checkoutUnavailableReason,
+              )}
               initialFulfillmentMethod={initialFulfillmentMethod}
               initialPickupDate={pickupDate}
               initialReturnDate={returnDate}
+              unavailableReason={checkoutUnavailableReason}
               wasCanceled={wasCanceled}
             />
           ) : (

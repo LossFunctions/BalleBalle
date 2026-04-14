@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   createDholQuoteFromCatalog,
   encodeDholCartItems,
+  getMissingDholCartItemIds,
   isFulfillmentMethod,
   type DholCartItem,
   type DholCheckoutInput,
@@ -159,6 +160,19 @@ export async function POST(request: Request) {
     const liveCatalog = await getDholProductsByIds(
       input.items.map((item) => item.id),
     );
+    const missingItemIds = getMissingDholCartItemIds(input.items, liveCatalog);
+
+    if (missingItemIds.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            missingItemIds.length === 1
+              ? "One selected dhol is no longer available in live inventory."
+              : "Some selected dhols are no longer available in live inventory.",
+        },
+        { status: 409 },
+      );
+    }
 
     quote = createDholQuoteFromCatalog({
       catalog: liveCatalog,
@@ -167,8 +181,14 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unable to price this checkout.";
+    const status =
+      message.startsWith("Missing ") ||
+      message.includes("Supabase") ||
+      message.includes("inventory is not configured")
+        ? 503
+        : 400;
 
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message }, { status });
   }
 
   const orderId = randomUUID();
