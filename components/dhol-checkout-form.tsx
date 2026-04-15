@@ -322,6 +322,7 @@ export function DholCheckoutForm({
                 );
                 setSubmitError(null);
               }}
+              rangeStart={selectedStartDate}
               required
               value={selectedReturnDate}
             />

@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { startTransition, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import expandArrowsIcon from "@/expand-arrows.png";
 import { DatePillInput } from "@/components/date-pill-input";
 import {
   formatDateInputValue,
@@ -83,13 +85,8 @@ export function AvailabilityDemo() {
             id="availability-title"
             className="font-display text-[clamp(2.8rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.05em] text-indigo"
           >
-            Plan your dates
+            Pick your dates
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/72 sm:text-base">
-            Start with pickup or delivery timing, then continue into the setup
-            builder. If you add dhol rentals, these dates will carry into
-            checkout.
-          </p>
         </div>
 
         <fieldset>
@@ -147,28 +144,13 @@ export function AvailabilityDemo() {
                 {siteConfig.pickupArea}
               </p>
             </div>
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-ink/10 bg-paper text-indigo transition group-hover:-translate-y-0.5 group-hover:border-indigo/18">
-              <svg
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-ink/10 bg-paper text-indigo shadow-[0_16px_32px_-24px_rgba(34,30,71,0.3)] transition duration-200 group-hover:-translate-y-0.5 group-hover:border-indigo/18 group-hover:bg-indigo group-hover:text-paper group-hover:shadow-[0_22px_38px_-24px_rgba(34,30,71,0.42)]">
+              <Image
+                alt=""
                 aria-hidden="true"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M7 17L17 7M10 7H17V14"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.85"
-                />
-                <path
-                  d="M15 17H8a1 1 0 0 1-1-1V9"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.85"
-                />
-              </svg>
+                className="h-3.5 w-3.5 object-contain opacity-90 transition duration-200 group-hover:brightness-0 group-hover:invert"
+                src={expandArrowsIcon}
+              />
             </span>
           </a>
         )}
@@ -208,6 +190,7 @@ export function AvailabilityDemo() {
               );
               setHasSelectedDates(false);
             }}
+            rangeStart={selectedStartDate}
             required
             value={selectedReturnDate}
           />
