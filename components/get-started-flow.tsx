@@ -1741,9 +1741,6 @@ export function GetStartedFlow({
                     const hasVariants = Boolean(option.variants?.length);
                     const quantity = getOptionSelectionQuantity(optionSelection);
                     const selected = quantity > 0;
-                    const liveDholItem = currentStep.id === "dhol"
-                      ? getLiveDholItem(option.id)
-                      : null;
                     const optionIsSoldOut = isDholOptionGloballyUnavailable(
                       currentStep,
                       option,
@@ -1906,15 +1903,6 @@ export function GetStartedFlow({
                           <p className="mt-2 text-[0.72rem] uppercase tracking-[0.2em] text-indigo/48">
                             {option.subtitle}
                           </p>
-                          {liveDholItem && currentStep.id === "dhol" ? (
-                            <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/44">
-                              {liveDholItem.inventoryCount > 0
-                                ? liveDholItem.inventoryCount === 1
-                                  ? "Limited stock"
-                                  : `${liveDholItem.inventoryCount} in inventory`
-                                : "No inventory available"}
-                            </p>
-                          ) : null}
                           {hasVariants ? (
                             <>
                               <div className="mt-5 flex items-start justify-between gap-2">
