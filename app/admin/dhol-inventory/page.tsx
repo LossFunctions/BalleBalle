@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getDholInventoryDashboard } from "@/lib/dhol-inventory";
@@ -19,6 +20,7 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 });
 
 export default async function DholInventoryAdminPage() {
+  await connection();
   const dashboard = await getDholInventoryDashboard();
 
   return (
