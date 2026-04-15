@@ -3,6 +3,7 @@ import "server-only";
 import {
   doDateRangesOverlap,
   formatDateInputValue,
+  formatLongDateValue,
   type DholResolvedCartItem,
 } from "@/lib/dhol-checkout";
 import { listDholOrders, type DholOrderRecord } from "@/lib/dhol-order-store";
@@ -97,7 +98,7 @@ export const getDholInventoryDashboard = async (
     items,
     recentOrders: orders.slice(0, 12).map((order) => ({
       customerEmail: order.customer.emailAddress,
-      dateRange: `${order.pickupDate} to ${order.returnDate}`,
+      dateRange: `${formatLongDateValue(order.pickupDate)} to ${formatLongDateValue(order.returnDate)}`,
       id: order.id,
       items: order.items.map((item) => ({
         id: item.id,
@@ -107,6 +108,6 @@ export const getDholInventoryDashboard = async (
       status: order.status,
       total: order.quote.total,
     })),
-    referenceDate,
+    referenceDate: formatLongDateValue(referenceDate),
   };
 };

@@ -3,14 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
+import { DatePillInput } from "@/components/date-pill-input";
 import {
   MAX_DHOL_QUANTITY,
   createDholQuoteFromCatalog,
   dholCatalog,
   formatDateInputValue,
+  formatLongDateValue,
+  getExtendedRentalWindowMessage,
   getRentalBlockCount,
   getIncludedReturnDate,
   getRentalWindowLength,
+  getStandardRentalWindowMessage,
   resolveDholCartItemsFromCatalog,
   type DholCatalogItem,
   type DholCartItem,
@@ -230,8 +234,6 @@ export function DholCheckoutForm({
   };
 
   const rentalBlockCount = quote?.rentalBlockCount ?? getRentalBlockCount(rentalWindowLength);
-  const rentalBlockLabel =
-    rentalBlockCount === 1 ? "billing block" : "billing blocks";
 
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
@@ -301,52 +303,41 @@ export function DholCheckoutForm({
           </fieldset>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm text-ink/78">
-              {isDelivery ? "Delivery date" : "Pickup date"}
-              <input
-                className={fieldClassName}
-                min={todayDate || undefined}
-                required
-                suppressHydrationWarning
-                type="date"
-                value={selectedStartDate}
-                onChange={(event) => {
-                  setPickupDate(event.target.value);
-                  setSubmitError(null);
-                }}
-              />
-            </label>
-            <label className="text-sm text-ink/78">
-              {isDelivery ? "Return date" : "Return date"}
-              <input
-                className={fieldClassName}
-                min={selectedStartDate || todayDate || undefined}
-                required
-                suppressHydrationWarning
-                type="date"
-                value={selectedReturnDate}
-                onChange={(event) => {
-                  const nextReturnDate = event.target.value;
-                  setReturnDate(
-                    nextReturnDate === recommendedReturnDate ? "" : nextReturnDate,
-                  );
-                  setSubmitError(null);
-                }}
-              />
-            </label>
+            <DatePillInput
+              label={isDelivery ? "Delivery date" : "Pickup date"}
+              min={todayDate || undefined}
+              onChange={(nextPickupDate) => {
+                setPickupDate(nextPickupDate);
+                setSubmitError(null);
+              }}
+              required
+              value={selectedStartDate}
+            />
+            <DatePillInput
+              label="Return date"
+              min={selectedStartDate || todayDate || undefined}
+              onChange={(nextReturnDate) => {
+                setReturnDate(
+                  nextReturnDate === recommendedReturnDate ? "" : nextReturnDate,
+                );
+                setSubmitError(null);
+              }}
+              required
+              value={selectedReturnDate}
+            />
           </div>
 
           {showDateWarning ? (
             <div className="rounded-[1.5rem] border border-rose-300/80 bg-rose-50/80 px-4 py-4 text-sm leading-6 text-rose-900/82">
               {isReturnBeforeStart
                 ? "Return date must be on or after the pickup date."
-                : `These dates bill as ${rentalBlockCount} ${rentalBlockLabel}. Every additional 4-day block recharges the base dhol rental rate.`}
+                : getExtendedRentalWindowMessage(rentalBlockCount)}
             </div>
           ) : (
             <div className="rounded-[1.5rem] border border-ink/8 bg-cream px-4 py-4 text-sm leading-6 text-ink/72">
-              Your base rate covers 1 four-day block. The recommended return date
-              for this rental is {recommendedReturnDate || "the included return date"}.
-              Longer rentals are billed in additional 4-day blocks.
+              {recommendedReturnDate
+                ? getStandardRentalWindowMessage(recommendedReturnDate)
+                : "The base rental rate covers 1 four-day block. Longer rentals are billed in additional 4-day blocks."}
             </div>
           )}
 
@@ -606,7 +597,8 @@ export function DholCheckoutForm({
                       {quote.rentalWindowLength} day rental window
                     </p>
                     <p className="mt-1 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/42">
-                      Billed as {quote.rentalBlockCount} {quote.rentalBlockCount === 1 ? "4-day block" : "4-day blocks"} • Included return date {quote.includedReturnDate}
+                      Billed as {quote.rentalBlockCount} {quote.rentalBlockCount === 1 ? "4-day block" : "4-day blocks"} • Included return date{" "}
+                      {formatLongDateValue(quote.includedReturnDate)}
                     </p>
                   </div>
                   <p className="font-display text-[2.4rem] leading-none tracking-[-0.05em] text-indigo">

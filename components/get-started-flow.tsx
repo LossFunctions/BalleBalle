@@ -22,8 +22,11 @@ import {
 } from "@/lib/site-content";
 import {
   encodeDholCartItems,
+  formatLongDateValue,
+  isValidDateInputValue,
   type DholCatalogItem,
   type DholCartItem,
+  type FulfillmentMethod,
 } from "@/lib/dhol-checkout";
 import dottedLineImage from "@/Dottedline.png";
 
@@ -297,9 +300,6 @@ const getOptionPrice = (step: CustomizeStep, option: CustomizeOption) =>
 const formatEventPrice = (amount: number) =>
   `${currencyFormatter.format(amount)}/event`;
 
-const getCheckoutQueryValue = (items: DholCartItem[]) =>
-  encodeURIComponent(encodeDholCartItems(items));
-
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -501,11 +501,17 @@ const getOptionImages = (option: CustomizeOption) => {
 };
 
 type GetStartedFlowProps = {
+  initialCheckoutContext?: {
+    fulfillmentMethod?: FulfillmentMethod;
+    pickupDate?: string;
+    returnDate?: string;
+  };
   initialMode?: BundlePath["id"];
   liveDholCatalog?: DholCatalogItem[];
 };
 
 export function GetStartedFlow({
+  initialCheckoutContext,
   initialMode = "customize",
   liveDholCatalog = [],
 }: GetStartedFlowProps) {
@@ -756,7 +762,31 @@ export function GetStartedFlow({
     : 0;
   const dholCheckoutHref =
     dholCheckoutItems.length > 0
-      ? `/checkout?items=${getCheckoutQueryValue(dholCheckoutItems)}`
+      ? (() => {
+          const searchParams = new URLSearchParams({
+            items: encodeDholCartItems(dholCheckoutItems),
+          });
+
+          if (initialCheckoutContext?.fulfillmentMethod) {
+            searchParams.set(
+              "fulfillmentMethod",
+              initialCheckoutContext.fulfillmentMethod,
+            );
+          }
+
+          if (initialCheckoutContext?.pickupDate) {
+            searchParams.set("pickupDate", initialCheckoutContext.pickupDate);
+          }
+
+          if (
+            initialCheckoutContext?.returnDate &&
+            isValidDateInputValue(initialCheckoutContext.returnDate)
+          ) {
+            searchParams.set("returnDate", initialCheckoutContext.returnDate);
+          }
+
+          return `/checkout?${searchParams.toString()}`;
+        })()
       : null;
   const currentProgressIndex = showAddOns ? null : currentStepIndex;
   const progressStepCount = customizeSteps.length;
@@ -1359,6 +1389,19 @@ export function GetStartedFlow({
                             Only dhol rentals are wired to secure payment right
                             now. The rest of the setup builder remains planning-only.
                           </p>
+                          {initialCheckoutContext?.pickupDate &&
+                          initialCheckoutContext?.returnDate ? (
+                            <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
+                              Dates preloaded for checkout •{" "}
+                              {formatLongDateValue(
+                                initialCheckoutContext.pickupDate,
+                              )}{" "}
+                              to{" "}
+                              {formatLongDateValue(
+                                initialCheckoutContext.returnDate,
+                              )}
+                            </p>
+                          ) : null}
                           {dholCheckoutHref ? (
                             <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
                               {dholCheckoutCount} selected •{" "}

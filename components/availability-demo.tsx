@@ -1,50 +1,74 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { DatePillInput } from "@/components/date-pill-input";
+import {
+  formatDateInputValue,
+  formatLongDateValue,
+  getExtendedRentalWindowMessage,
+  getIncludedReturnDate,
+  getRentalBlockCount,
+  getRentalWindowLength,
+  getStandardRentalWindowMessage,
+  type FulfillmentMethod,
+} from "@/lib/dhol-checkout";
 import { siteConfig } from "@/lib/site-content";
 
-type FulfillmentMethod = "pickup" | "delivery";
-
-const fieldClassName =
-  "mt-2 w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm text-ink outline-none transition focus-visible:border-indigo focus-visible:ring-2 focus-visible:ring-indigo/20";
+const subscribeToDateWindow = () => () => {};
 
 export function AvailabilityDemo() {
   const router = useRouter();
   const [fulfillmentMethod, setFulfillmentMethod] =
     useState<FulfillmentMethod>("pickup");
-  const [pickupDate, setPickupDate] = useState("2026-06-12");
-  const [returnDate, setReturnDate] = useState("2026-06-15");
+  const [pickupDate, setPickupDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
   const [hasSelectedDates, setHasSelectedDates] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [emailAddress, setEmailAddress] = useState("");
-  const [deliveryDetails, setDeliveryDetails] = useState("");
+  const todayDate = useSyncExternalStore(
+    subscribeToDateWindow,
+    () => formatDateInputValue(new Date()),
+    () => "",
+  );
 
   const isDelivery = fulfillmentMethod === "delivery";
-  const canReserve =
-    fullName.trim().length > 0 &&
-    mobileNumber.trim().length > 0 &&
-    (!isDelivery ||
-      (emailAddress.trim().length > 0 && deliveryDetails.trim().length > 0));
-  const reserveButtonLabel = isDelivery
-    ? "Reserve this setup for delivery"
-    : "Reserve this setup for pickup";
+  const selectedStartDate = pickupDate || todayDate;
+  const recommendedReturnDate = selectedStartDate
+    ? getIncludedReturnDate(selectedStartDate)
+    : "";
+  const selectedReturnDate = returnDate || recommendedReturnDate;
+  const rentalWindowLength =
+    selectedStartDate && selectedReturnDate
+      ? getRentalWindowLength(selectedStartDate, selectedReturnDate)
+      : 0;
+  const isReturnBeforeStart = rentalWindowLength < 1;
+  const isOutsideIncludedWindow = rentalWindowLength > 4;
+  const showDateWarning = Boolean(
+    selectedStartDate &&
+      selectedReturnDate &&
+      (isReturnBeforeStart || isOutsideIncludedWindow),
+  );
+  const rentalBlockCount = getRentalBlockCount(rentalWindowLength);
+  const continueButtonLabel = "Continue to setup builder";
 
   const dateLabel = isDelivery ? "Delivery date" : "Pickup date";
   const returnLabel = isDelivery
     ? "Return date (Date you want us to pickup)"
     : "Return date";
-
-  const handleReserve = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleContinue = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!canReserve) {
+    if (!selectedStartDate || !selectedReturnDate || isReturnBeforeStart) {
       return;
     }
 
+    const searchParams = new URLSearchParams({
+      fulfillmentMethod,
+      pickupDate: selectedStartDate,
+      returnDate: selectedReturnDate,
+    });
+
     startTransition(() => {
-      router.push("/get-started");
+      router.push(`/get-started?${searchParams.toString()}`);
     });
   };
 
@@ -59,8 +83,13 @@ export function AvailabilityDemo() {
             id="availability-title"
             className="font-display text-[clamp(2.8rem,6vw,4.5rem)] leading-[0.95] tracking-[-0.05em] text-indigo"
           >
-            Select dates
+            Plan your dates
           </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/72 sm:text-base">
+            Start with pickup or delivery timing, then continue into the setup
+            builder. If you add dhol rentals, these dates will carry into
+            checkout.
+          </p>
         </div>
 
         <fieldset>
@@ -84,11 +113,7 @@ export function AvailabilityDemo() {
                   }`}
                   onClick={() => {
                     setFulfillmentMethod(option);
-
-                    if (option === "pickup") {
-                      setEmailAddress("");
-                      setDeliveryDetails("");
-                    }
+                    setHasSelectedDates(false);
                   }}
                 >
                   {label}
@@ -153,133 +178,148 @@ export function AvailabilityDemo() {
         className="mt-6 space-y-5"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!selectedStartDate || !selectedReturnDate || isReturnBeforeStart) {
+            return;
+          }
+
           setHasSelectedDates(true);
         }}
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm text-ink/78">
-            {dateLabel}
-            <input
-              className={fieldClassName}
-              name="pickup-date"
-              type="date"
-              value={pickupDate}
-              onChange={(event) => setPickupDate(event.target.value)}
-            />
-          </label>
-          <label className="text-sm text-ink/78">
-            {returnLabel}
-            <input
-              className={fieldClassName}
-              name="return-date"
-              type="date"
-              value={returnDate}
-              onChange={(event) => setReturnDate(event.target.value)}
-            />
-          </label>
+          <DatePillInput
+            label={dateLabel}
+            min={todayDate || undefined}
+            name="pickup-date"
+            onChange={(nextPickupDate) => {
+              setPickupDate(nextPickupDate);
+              setHasSelectedDates(false);
+            }}
+            required
+            value={selectedStartDate}
+          />
+          <DatePillInput
+            invalid={showDateWarning}
+            label={returnLabel}
+            min={selectedStartDate || todayDate || undefined}
+            name="return-date"
+            onChange={(nextReturnDate) => {
+              setReturnDate(
+                nextReturnDate === recommendedReturnDate ? "" : nextReturnDate,
+              );
+              setHasSelectedDates(false);
+            }}
+            required
+            value={selectedReturnDate}
+          />
         </div>
+
+        {showDateWarning ? (
+          <div className="rounded-[1.5rem] border border-rose-300/80 bg-rose-50/80 px-4 py-4">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-paper text-rose-600">
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12 8.4V13.2"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="1.8"
+                  />
+                  <circle cx="12" cy="16.8" fill="currentColor" r="1" />
+                  <path
+                    d="M10.2 4.6L3.7 15.9A2 2 0 0 0 5.4 19h13.2a2 2 0 0 0 1.7-3.1L13.8 4.6a2 2 0 0 0-3.6 0Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-rose-700">
+                  {isReturnBeforeStart
+                    ? "Return date must be on or after your pickup or delivery date."
+                    : getExtendedRentalWindowMessage(rentalBlockCount)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-[1.5rem] border border-ink/8 bg-cream px-4 py-4 text-sm leading-6 text-ink/72">
+            {recommendedReturnDate
+              ? getStandardRentalWindowMessage(recommendedReturnDate)
+              : "The base rental rate covers 1 four-day block. Longer rentals are billed in additional 4-day blocks."}
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
             type="submit"
           >
-            Select dates
+            Save dates
           </button>
         </div>
       </form>
 
-      <div
-        aria-live="polite"
-        className="mt-5 rounded-[1.6rem] border border-ink/8 bg-cream p-4"
-      >
-        {!hasSelectedDates ? (
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-indigo">
-              Select your dates to continue.
-            </p>
-            <p className="text-sm leading-6 text-ink/70">
-              Choose pickup or delivery first, then lock in the dates you want
-              for your rental window.
-            </p>
-          </div>
-        ) : (
+      {hasSelectedDates ? (
+        <div
+          aria-live="polite"
+          className="mt-5 rounded-[1.6rem] border border-ink/8 bg-cream p-4"
+        >
           <div className="space-y-4">
             <div className="rounded-[1.4rem] border border-mehendi/18 bg-mehendi/10 p-4">
               <p className="text-sm font-semibold text-mehendi">
-                These dates are available for{" "}
-                {isDelivery ? "delivery" : "pickup"}.
+                Dates saved for {isDelivery ? "delivery" : "pickup"} planning.
               </p>
               <p className="mt-1 text-sm leading-6 text-ink/72">
-                Complete your details below and continue into the setup flow.
+                Continue into the setup builder. Final dhol availability is
+                confirmed when you reach checkout.
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={handleReserve}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-sm text-ink/78">
-                  Full name
-                  <input
-                    className={fieldClassName}
-                    name="customer-name"
-                    required
-                    type="text"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                  />
-                </label>
-                <label className="text-sm text-ink/78">
-                  Mobile number
-                  <input
-                    className={fieldClassName}
-                    name="customer-mobile"
-                    required
-                    type="tel"
-                    value={mobileNumber}
-                    onChange={(event) => setMobileNumber(event.target.value)}
-                  />
-                </label>
-
-                {isDelivery ? (
-                  <>
-                    <label className="text-sm text-ink/78">
-                      Email address
-                      <input
-                        className={fieldClassName}
-                        name="customer-email"
-                        required
-                        type="email"
-                        value={emailAddress}
-                        onChange={(event) => setEmailAddress(event.target.value)}
-                      />
-                    </label>
-                    <label className="text-sm text-ink/78 sm:col-span-2">
-                      Event address and delivery details
-                      <textarea
-                        className={`${fieldClassName} min-h-28 resize-y`}
-                        name="delivery-details"
-                        required
-                        value={deliveryDetails}
-                        onChange={(event) => setDeliveryDetails(event.target.value)}
-                      />
-                    </label>
-                  </>
-                ) : null}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[1.3rem] border border-ink/8 bg-paper px-4 py-4">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-indigo/45">
+                  Fulfillment
+                </p>
+                <p className="mt-2 text-sm font-semibold text-indigo">
+                  {isDelivery ? "Delivery" : "Pickup"}
+                </p>
               </div>
+              <div className="rounded-[1.3rem] border border-ink/8 bg-paper px-4 py-4">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-indigo/45">
+                  Start date
+                </p>
+                <p className="mt-2 text-sm font-semibold text-indigo">
+                  {formatLongDateValue(selectedStartDate)}
+                </p>
+              </div>
+              <div className="rounded-[1.3rem] border border-ink/8 bg-paper px-4 py-4">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-indigo/45">
+                  Return date
+                </p>
+                <p className="mt-2 text-sm font-semibold text-indigo">
+                  {formatLongDateValue(selectedReturnDate)}
+                </p>
+              </div>
+            </div>
 
+            <form onSubmit={handleContinue}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
-                  className="pressable inline-flex items-center justify-center rounded-full bg-indigo px-5 py-3 text-sm font-semibold text-paper transition hover:-translate-y-0.5 hover:bg-indigo/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!canReserve}
+                  className="pressable inline-flex items-center justify-center rounded-full bg-indigo px-5 py-3 text-sm font-semibold text-paper transition hover:-translate-y-0.5 hover:bg-indigo/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
                   type="submit"
                 >
-                  {reserveButtonLabel}
+                  {continueButtonLabel}
                 </button>
               </div>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

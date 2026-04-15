@@ -136,6 +136,13 @@ const addDaysToDateValue = (dateValue: string, days: number) => {
 export const getIncludedReturnDate = (dateValue: string) =>
   addDaysToDateValue(dateValue, INCLUDED_RENTAL_DAYS - 1);
 
+export const formatLongDateValue = (dateValue: string) =>
+  new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+  }).format(parseDateInputValue(dateValue));
+
 export const getRentalWindowLength = (startDate: string, endDate: string) => {
   const start = parseDateInputValue(startDate);
   const end = parseDateInputValue(endDate);
@@ -154,6 +161,16 @@ export const getRentalBlockCount = (rentalWindowLength: number) => {
 
   return Math.ceil(rentalWindowLength / INCLUDED_RENTAL_DAYS);
 };
+
+export const getExtendedRentalWindowMessage = (rentalBlockCount: number) =>
+  `Current return date will be billed as ${rentalBlockCount} ${
+    rentalBlockCount === 1 ? "billing block" : "billing blocks"
+  }. Every additional 4-day block recharges the base dhol rental rate.`;
+
+export const getStandardRentalWindowMessage = (includedReturnDate: string) =>
+  `The base rental rate covers 1 four-day block. The latest you can return to stay within the standard fee is ${formatLongDateValue(
+    includedReturnDate,
+  )}. Longer rentals are billed in additional 4-day blocks.`;
 
 export const doDateRangesOverlap = (
   firstStartDate: string,

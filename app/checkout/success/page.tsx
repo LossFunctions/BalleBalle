@@ -7,6 +7,10 @@ import {
   findDholOrderByStripeSessionId,
   synchronizePaidDholOrderFromSession,
 } from "@/lib/dhol-order-store";
+import {
+  formatLongDateValue,
+  isValidDateInputValue,
+} from "@/lib/dhol-checkout";
 import { getStripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +29,9 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 
 const getSingleValue = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value;
+
+const formatDisplayDate = (value?: string | null) =>
+  value && isValidDateInputValue(value) ? formatLongDateValue(value) : "Not set";
 
 export default async function CheckoutSuccessPage({
   searchParams,
@@ -156,13 +163,13 @@ export default async function CheckoutSuccessPage({
                       <div className="flex justify-between gap-4">
                         <span>Pickup date</span>
                         <span className="font-semibold text-indigo">
-                          {checkoutSession?.metadata?.pickup_date ?? "Not set"}
+                          {formatDisplayDate(checkoutSession?.metadata?.pickup_date)}
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span>Return date</span>
                         <span className="font-semibold text-indigo">
-                          {checkoutSession?.metadata?.return_date ?? "Not set"}
+                          {formatDisplayDate(checkoutSession?.metadata?.return_date)}
                         </span>
                       </div>
                     </div>

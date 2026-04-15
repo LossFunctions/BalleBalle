@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   createDholQuoteFromCatalog,
   encodeDholCartItems,
+  formatLongDateValue,
   getMissingDholCartItemIds,
   isFulfillmentMethod,
   type DholCartItem,
@@ -77,6 +78,8 @@ const createLineItems = (
     "pickupDate" | "returnDate" | "fulfillmentMethod"
   >,
 ): CheckoutSessionLineItem[] => {
+  const formattedPickupDate = formatLongDateValue(input.pickupDate);
+  const formattedReturnDate = formatLongDateValue(input.returnDate);
   const lineItems: CheckoutSessionLineItem[] = quote.cartItems.map((item) => ({
     quantity: item.quantity,
     price_data: {
@@ -84,7 +87,7 @@ const createLineItems = (
       unit_amount: item.unitAmount * 100,
       product_data: {
         name: `${item.title} dhol rental`,
-        description: `${item.subtitle} • ${input.pickupDate} to ${input.returnDate} • ${input.fulfillmentMethod}`,
+        description: `${item.subtitle} • ${formattedPickupDate} to ${formattedReturnDate} • ${input.fulfillmentMethod}`,
         images: [new URL(item.imageSrc, origin).toString()],
       },
     },
@@ -114,7 +117,7 @@ const createLineItems = (
             quote.additionalRentalBlockCount === 1
               ? "Additional 4-day rental block"
               : "Additional 4-day rental blocks",
-          description: `Rental window exceeds the included ${quote.includedReturnDate} return date.`,
+          description: `Rental window exceeds the included ${formatLongDateValue(quote.includedReturnDate)} return date.`,
         },
       },
     });
