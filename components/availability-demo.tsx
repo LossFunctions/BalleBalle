@@ -198,7 +198,7 @@ export function AvailabilityDemo() {
 
         {showDateWarning ? (
           <div className="rounded-[1.5rem] border border-rose-300/80 bg-rose-50/80 px-4 py-4">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-paper text-rose-600">
                 <svg
                   aria-hidden="true"

@@ -3,9 +3,6 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import {
   dholCatalog,
-  isFulfillmentMethod,
-  isValidDateInputValue,
-  type FulfillmentMethod,
 } from "@/lib/dhol-checkout";
 import { listDholProducts } from "@/lib/dhol-product-store";
 
@@ -30,26 +27,6 @@ export default async function GetStartedPage({
   const requestedPath = getSingleValue(resolvedSearchParams?.path);
   const initialMode =
     requestedPath === "standard" ? "standard" : "customize";
-  const fulfillmentMethodValue = getSingleValue(
-    resolvedSearchParams?.fulfillmentMethod,
-  );
-  const pickupDateValue = getSingleValue(resolvedSearchParams?.pickupDate);
-  const returnDateValue = getSingleValue(resolvedSearchParams?.returnDate);
-  const initialCheckoutContext: {
-    fulfillmentMethod?: FulfillmentMethod;
-    pickupDate?: string;
-    returnDate?: string;
-  } = {
-    fulfillmentMethod: isFulfillmentMethod(fulfillmentMethodValue)
-      ? fulfillmentMethodValue
-      : undefined,
-    pickupDate: isValidDateInputValue(pickupDateValue ?? "")
-      ? pickupDateValue
-      : undefined,
-    returnDate: isValidDateInputValue(returnDateValue ?? "")
-      ? returnDateValue
-      : undefined,
-  };
   let liveDholCatalog = dholCatalog;
 
   try {
@@ -73,7 +50,6 @@ export default async function GetStartedPage({
         <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8 lg:pt-10">
           <GetStartedFlow
             initialMode={initialMode}
-            initialCheckoutContext={initialCheckoutContext}
             liveDholCatalog={liveDholCatalog}
           />
         </section>

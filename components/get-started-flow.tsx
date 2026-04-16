@@ -22,11 +22,8 @@ import {
 } from "@/lib/site-content";
 import {
   encodeDholCartItems,
-  formatLongDateValue,
-  isValidDateInputValue,
   type DholCatalogItem,
   type DholCartItem,
-  type FulfillmentMethod,
 } from "@/lib/dhol-checkout";
 import dottedLineImage from "@/Dottedline.png";
 
@@ -51,6 +48,7 @@ type FlowSnapshot = {
 
 const FLOW_SCROLL_OFFSET = 112;
 const SIDEBAR_ADDED_STATUS = "Added";
+const DECORATIVE_ROUND_CUSHION_OPTION_ID = "full-cushion-set";
 const EVENT_PRICING_POLICY =
   "Each event rate covers a 4-day rental window total, including pickup or delivery and return by day 4.";
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -83,6 +81,25 @@ type PreviewZoomState = {
   hovered: boolean;
   x: number;
   y: number;
+};
+
+type SidebarSummaryChip = {
+  label: string;
+  swatch?: string;
+};
+
+type SidebarSummaryGroup = {
+  chips: SidebarSummaryChip[] | null;
+  quantityLabel: string | null;
+  title: string;
+};
+
+type SidebarSummaryState = {
+  groups: SidebarSummaryGroup[] | null;
+  headline: string | null;
+  priceLine: string | null;
+  status: string;
+  tone: "pending" | "selected" | "skipped";
 };
 
 type OptionImagePresentation = {
@@ -448,31 +465,6 @@ const cloneFlowSnapshot = (snapshot: FlowSnapshot): FlowSnapshot => ({
   showAddOns: snapshot.showAddOns,
 });
 
-const getOptionVariantSummary = (
-  option: CustomizeOption,
-  selection?: OptionSelection,
-) => {
-  if (!option.variants?.length || !selection?.variants) {
-    return null;
-  }
-
-  const selectedVariants = option.variants.filter(
-    (variant) => (selection.variants?.[variant.id] ?? 0) > 0,
-  );
-
-  if (selectedVariants.length === 0) {
-    return null;
-  }
-
-  return selectedVariants
-    .map((variant) => {
-      const quantity = selection.variants?.[variant.id] ?? 0;
-
-      return quantity > 1 ? `${variant.label} ×${quantity}` : variant.label;
-    })
-    .join(", ");
-};
-
 const getPreferredOptionImageIndex = (
   option: CustomizeOption,
   selection: OptionSelection | undefined,
@@ -501,17 +493,11 @@ const getOptionImages = (option: CustomizeOption) => {
 };
 
 type GetStartedFlowProps = {
-  initialCheckoutContext?: {
-    fulfillmentMethod?: FulfillmentMethod;
-    pickupDate?: string;
-    returnDate?: string;
-  };
   initialMode?: BundlePath["id"];
   liveDholCatalog?: DholCatalogItem[];
 };
 
 export function GetStartedFlow({
-  initialCheckoutContext,
   initialMode = "customize",
   liveDholCatalog = [],
 }: GetStartedFlowProps) {
@@ -535,6 +521,12 @@ export function GetStartedFlow({
   const [activeVariantIds, setActiveVariantIds] = useState<Record<string, string>>(
     {},
   );
+  const [primedVariantOptionIds, setPrimedVariantOptionIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [variantSelectionErrors, setVariantSelectionErrors] = useState<
+    Record<string, boolean>
+  >({});
   const [addOnSelections, setAddOnSelections] = useState<AddOnSelectionMap>(() =>
     ({ ...initialSnapshot.addOnSelections }),
   );
@@ -640,61 +632,9 @@ export function GetStartedFlow({
     };
   }, [scrollKey]);
 
-  useEffect(() => {
-    const scrollContainer = sidebarScrollRef.current;
-
-    if (!scrollContainer) {
-      return;
-    }
-
-    const activeStepId = customizeSteps[currentStepIndex]?.id;
-
-    const activeSidebarItem = showAddOns
-      ? sidebarAddOnsRef.current
-      : activeStepId
-        ? sidebarStepRefs.current[activeStepId]
-        : null;
-
-    if (!activeSidebarItem) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      const stickySummaryHeight = sidebarStickySummaryRef.current?.offsetHeight ?? 0;
-      const containerRect = scrollContainer.getBoundingClientRect();
-      const targetRect = activeSidebarItem.getBoundingClientRect();
-      const currentScrollTop = scrollContainer.scrollTop;
-      const topOffset = 0;
-      const nextScrollTop = Math.max(
-        0,
-        targetRect.top - containerRect.top + currentScrollTop - stickySummaryHeight - topOffset,
-      );
-
-      if (Math.abs(nextScrollTop - currentScrollTop) < 8) {
-        return;
-      }
-
-      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth";
-
-      scrollContainer.scrollTo({
-        top: nextScrollTop,
-        behavior,
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [currentStepIndex, showAddOns]);
-
   const completedCount = customizeSteps.filter(
     (step) => confirmedSelections[step.id] !== null,
   ).length;
-  const allStepsCompleted = customizeSteps.every(
-    (step) => confirmedSelections[step.id] !== null,
-  );
   const selectedAddOns = customizeAddOns.filter(
     (option) => (addOnSelections[option.id] ?? 0) > 0,
   );
@@ -753,41 +693,26 @@ export function GetStartedFlow({
           return items;
         }, [])
       : [];
-  const dholCheckoutCount = dholCheckoutItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0,
-  );
-  const dholCheckoutSubtotal = dholStep
-    ? getResolvedSelectionTotal(dholStep, dholSelection)
-    : 0;
   const dholCheckoutHref =
     dholCheckoutItems.length > 0
-      ? (() => {
-          const searchParams = new URLSearchParams({
-            items: encodeDholCartItems(dholCheckoutItems),
-          });
-
-          if (initialCheckoutContext?.fulfillmentMethod) {
-            searchParams.set(
-              "fulfillmentMethod",
-              initialCheckoutContext.fulfillmentMethod,
-            );
-          }
-
-          if (initialCheckoutContext?.pickupDate) {
-            searchParams.set("pickupDate", initialCheckoutContext.pickupDate);
-          }
-
-          if (
-            initialCheckoutContext?.returnDate &&
-            isValidDateInputValue(initialCheckoutContext.returnDate)
-          ) {
-            searchParams.set("returnDate", initialCheckoutContext.returnDate);
-          }
-
-          return `/checkout?${searchParams.toString()}`;
-        })()
+      ? `/checkout?${new URLSearchParams({
+          items: encodeDholCartItems(dholCheckoutItems),
+        }).toString()}`
       : null;
+  const hasSelectionsOutsideDhol =
+    selectedAddOnsCount > 0 ||
+    customizeSteps.some(
+      (step) =>
+        step.id !== "dhol" &&
+        getResolvedSelectionCount(step, getEffectiveSelection(step.id)) > 0,
+    );
+  const showDirectDholCheckoutCta = Boolean(
+    dholCheckoutHref && !hasSelectionsOutsideDhol,
+  );
+  const availabilityCheckoutHref = subtotal > 0 ? "/availability" : null;
+  const checkoutCtaHref = showDirectDholCheckoutCta
+    ? dholCheckoutHref
+    : availabilityCheckoutHref;
   const currentProgressIndex = showAddOns ? null : currentStepIndex;
   const progressStepCount = customizeSteps.length;
   const useCompactProgressTrack = progressStepCount >= 11;
@@ -795,6 +720,56 @@ export function GetStartedFlow({
     mode === "standard"
       ? "Items are pre-selected based on a recommended standard setup."
       : "Customize your setup by adding the items you need.";
+
+  useEffect(() => {
+    const scrollContainer = sidebarScrollRef.current;
+
+    if (!scrollContainer) {
+      return;
+    }
+
+    const activeStepId = customizeSteps[currentStepIndex]?.id;
+
+    const activeSidebarItem = showAddOns
+      ? sidebarAddOnsRef.current
+      : activeStepId
+        ? sidebarStepRefs.current[activeStepId]
+        : null;
+
+    if (!activeSidebarItem) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const stickySummaryHeight = sidebarStickySummaryRef.current?.offsetHeight ?? 0;
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = activeSidebarItem.getBoundingClientRect();
+      const currentScrollTop = scrollContainer.scrollTop;
+      const topOffset = 0;
+      const nextScrollTop = Math.max(
+        0,
+        targetRect.top - containerRect.top + currentScrollTop - stickySummaryHeight - topOffset,
+      );
+
+      if (Math.abs(nextScrollTop - currentScrollTop) < 8) {
+        return;
+      }
+
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth";
+
+      scrollContainer.scrollTo({
+        top: nextScrollTop,
+        behavior,
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [currentStepIndex, showAddOns, checkoutCtaHref, showEventPricingPolicy]);
+
   const previewedCurrentOption =
     currentStep.options.find(
       (option) => option.id === previewOptionIds[currentStep.id],
@@ -856,6 +831,8 @@ export function GetStartedFlow({
     setDraftSelections(cloneSelectionMap(snapshot.draftSelections));
     setConfirmedSelections(cloneSelectionMap(snapshot.confirmedSelections));
     setAddOnSelections({ ...snapshot.addOnSelections });
+    setPrimedVariantOptionIds({});
+    setVariantSelectionErrors({});
     setCurrentStepIndex(snapshot.currentStepIndex);
     setShowAddOns(snapshot.showAddOns);
   };
@@ -974,7 +951,7 @@ export function GetStartedFlow({
     }));
   };
 
-  const selectionStateForStep = (stepId: string) => {
+  const selectionStateForStep = (stepId: string): SidebarSummaryState => {
     const step = customizeSteps.find((item) => item.id === stepId);
     const selection = getEffectiveSelection(stepId);
 
@@ -983,6 +960,7 @@ export function GetStartedFlow({
         status: "Pending",
         tone: "pending" as const,
         headline: null,
+        groups: null,
         priceLine: null,
       };
     }
@@ -992,6 +970,7 @@ export function GetStartedFlow({
         status: "Skipped",
         tone: "skipped" as const,
         headline: step.skippedSummary,
+        groups: null,
         priceLine: null,
       };
     }
@@ -1009,26 +988,46 @@ export function GetStartedFlow({
         status: "Pending",
         tone: "pending" as const,
         headline: null,
+        groups: null,
         priceLine: null,
       };
     }
 
+    const groups: SidebarSummaryGroup[] = selectedOptions.map((option) => {
+      const optionSelection = selection[option.id];
+      const quantity = getOptionSelectionQuantity(optionSelection);
+      const chips =
+        option.variants
+          ?.filter((variant) => (optionSelection?.variants?.[variant.id] ?? 0) > 0)
+          .map((variant) => {
+            const variantQuantity = optionSelection?.variants?.[variant.id] ?? 0;
+
+            return {
+              label:
+                variantQuantity > 1
+                  ? `${variant.label} ×${variantQuantity}`
+                  : variant.label,
+              swatch: variant.swatch,
+            };
+          }) ?? [];
+
+      return {
+        chips: chips.length > 0 ? chips : null,
+        quantityLabel:
+          chips.length > 0
+            ? `${quantity} selected`
+            : quantity > 1
+              ? `×${quantity}`
+              : "Selected",
+        title: option.title,
+      };
+    });
+
     return {
       status: SIDEBAR_ADDED_STATUS,
       tone: "selected" as const,
-      headline: selectedOptions
-        .map((option) => {
-          const optionSelection = selection[option.id];
-          const variantSummary = getOptionVariantSummary(option, optionSelection);
-          const quantity = getOptionSelectionQuantity(optionSelection);
-
-          if (variantSummary) {
-            return `${option.title} • ${variantSummary}`;
-          }
-
-          return quantity > 1 ? `${option.title} ×${quantity}` : option.title;
-        })
-        .join(", "),
+      groups,
+      headline: null,
       priceLine: `${selectedCount} selected • ${formatEventPrice(total)}`,
     };
   };
@@ -1316,7 +1315,7 @@ export function GetStartedFlow({
                 className="tailored-scroll relative rounded-[1.9rem] xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto"
                 ref={sidebarScrollRef}
               >
-                <div className="p-5 xl:pr-4">
+                <div className="p-5 xl:pb-[44vh] xl:pr-4">
                   <div
                     className="sticky top-0 z-20 -mx-5 bg-cream/96 px-5 pt-1 backdrop-blur-sm xl:pr-4"
                     ref={sidebarStickySummaryRef}
@@ -1379,54 +1378,14 @@ export function GetStartedFlow({
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 rounded-[1.7rem] border border-mehendi/16 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.98))] px-4 py-4 shadow-[0_18px_45px_-38px_rgba(34,30,71,0.22)]">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="text-[0.62rem] uppercase tracking-[0.24em] text-indigo/48">
-                            Online Checkout
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-ink/72">
-                            Only dhol rentals are wired to secure payment right
-                            now. The rest of the setup builder remains planning-only.
-                          </p>
-                          {initialCheckoutContext?.pickupDate &&
-                          initialCheckoutContext?.returnDate ? (
-                            <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
-                              Dates preloaded for checkout •{" "}
-                              {formatLongDateValue(
-                                initialCheckoutContext.pickupDate,
-                              )}{" "}
-                              to{" "}
-                              {formatLongDateValue(
-                                initialCheckoutContext.returnDate,
-                              )}
-                            </p>
-                          ) : null}
-                          {dholCheckoutHref ? (
-                            <p className="mt-3 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
-                              {dholCheckoutCount} selected •{" "}
-                              {formatEventPrice(dholCheckoutSubtotal)}
-                            </p>
-                          ) : null}
-                        </div>
-                        {dholCheckoutHref ? (
-                          <Link
-                            className="pressable inline-flex shrink-0 items-center justify-center rounded-full bg-marigold px-4 py-2 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                            href={dholCheckoutHref}
-                          >
-                            Checkout dhols
-                          </Link>
-                        ) : (
-                          <button
-                            className="inline-flex shrink-0 items-center justify-center rounded-full border border-ink/10 bg-paper px-4 py-2 text-sm text-ink/42"
-                            disabled
-                            type="button"
-                          >
-                            Pick a dhol first
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    {checkoutCtaHref ? (
+                      <Link
+                        className="pressable mt-4 inline-flex w-full items-center justify-center rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                        href={checkoutCtaHref}
+                      >
+                        Proceed to Checkout
+                      </Link>
+                    ) : null}
                     <div
                       className={`mt-4 w-full overflow-hidden rounded-full border border-indigo/10 bg-paper/94 py-3 shadow-[0_20px_40px_-34px_rgba(34,30,71,0.35)] backdrop-blur ${
                         useCompactProgressTrack ? "px-3 sm:px-4" : "px-5"
@@ -1512,9 +1471,55 @@ export function GetStartedFlow({
                           </div>
 
                           {summary.headline && summary.tone !== "skipped" ? (
-                            <p className="mt-3 text-sm leading-6 text-ink/68">
+                            <p
+                              className={`mt-3 ${
+                                summary.tone === "selected"
+                                  ? "text-[0.98rem] font-medium leading-6 text-indigo/86"
+                                  : "text-sm leading-6 text-ink/68"
+                              }`}
+                            >
                               {summary.headline}
                             </p>
+                          ) : null}
+
+                          {summary.tone === "selected" && summary.groups?.length ? (
+                            <div className="mt-3 space-y-2.5">
+                              {summary.groups.map((group) => (
+                                <div
+                                  className="rounded-[1.1rem] border border-indigo/10 bg-cream/90 px-3 py-2.5"
+                                  key={`${step.id}-${group.title}`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-[0.86rem] font-medium leading-5 text-indigo/84">
+                                      {group.title}
+                                    </p>
+                                    {group.quantityLabel ? (
+                                      <span className="shrink-0 rounded-full border border-indigo/10 bg-paper px-2 py-1 text-[0.58rem] font-medium uppercase tracking-[0.18em] text-indigo/52">
+                                        {group.quantityLabel}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  {group.chips?.length ? (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {group.chips.map((chip) => (
+                                        <span
+                                          className="inline-flex items-center gap-2 rounded-full border border-indigo/10 bg-paper px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em] text-indigo/62"
+                                          key={`${step.id}-${group.title}-${chip.label}`}
+                                        >
+                                          {chip.swatch ? (
+                                            <span
+                                              className="h-2 w-2 rounded-full border border-paper/80 shadow-[0_0_0_1px_rgba(34,30,71,0.08)]"
+                                              style={{ backgroundColor: chip.swatch }}
+                                            />
+                                          ) : null}
+                                          {chip.label}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
                           ) : null}
 
                           {summary.priceLine ? (
@@ -1598,14 +1603,12 @@ export function GetStartedFlow({
                     ) : null}
                   </div>
 
-                  {allStepsCompleted ? (
+                  {checkoutCtaHref ? (
                     <Link
                       className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-18px_rgba(17,17,17,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                      href="/availability"
+                      href={checkoutCtaHref}
                     >
-                      {selectedAddOnsCount > 0
-                        ? "Select dates for full setup"
-                        : "Select dates"}
+                      Proceed to Checkout
                     </Link>
                   ) : (
                     <button
@@ -1613,7 +1616,7 @@ export function GetStartedFlow({
                       disabled
                       type="button"
                     >
-                      Finish the core setup first
+                      Pick at least one item
                     </button>
                   )}
                 </div>
@@ -1770,26 +1773,23 @@ export function GetStartedFlow({
                   </div>
                 </div>
 
-                {currentStep.id === "dhol" ? (
-                  <div className="mt-6 rounded-[1.6rem] border border-indigo/10 bg-cream px-4 py-4 text-sm leading-6 text-ink/68">
-                    Dhol pricing and global stock now sync from live inventory.
-                    Exact booking availability still depends on the rental dates
-                    entered at checkout.
-                  </div>
-                ) : null}
-
                 <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {currentStep.options.map((option) => {
                     const optionSelection = currentSelectionMap?.[option.id];
                     const hasVariants = Boolean(option.variants?.length);
                     const quantity = getOptionSelectionQuantity(optionSelection);
                     const selected = quantity > 0;
+                    const isDecorativeRoundCushion =
+                      option.id === DECORATIVE_ROUND_CUSHION_OPTION_ID;
+                    const useDropdownVariantPicker =
+                      hasVariants && isDecorativeRoundCushion;
+                    const variantCardPrimed = Boolean(primedVariantOptionIds[option.id]);
                     const optionIsSoldOut = isDholOptionGloballyUnavailable(
                       currentStep,
                       option,
                     );
                     const selectedBadgeLabel =
-                      !hasVariants && selected
+                      selected && (!hasVariants || useDropdownVariantPicker)
                         ? quantity > 1
                           ? `Selected ×${quantity}`
                           : "Selected"
@@ -1816,20 +1816,62 @@ export function GetStartedFlow({
                     const activeVariantQuantity = activeVariant
                       ? optionSelection?.variants?.[activeVariant.id] ?? 0
                       : 0;
+                    const showVariantSelectionError =
+                      useDropdownVariantPicker &&
+                      Boolean(variantSelectionErrors[option.id]) &&
+                      !activeVariant;
                     const optionImagePresentation =
                       getOptionImagePresentation(activeImage);
+                    const cardIsHighlighted = selected || variantCardPrimed;
                     const cardClasses = optionIsSoldOut
                       ? "cursor-not-allowed border-rose-200/80 bg-rose-50/70 opacity-72"
-                      : selected
+                      : cardIsHighlighted
                         ? "border-mehendi/28 bg-[linear-gradient(180deg,rgba(11,123,76,0.08),rgba(249,248,244,0.96))] shadow-[0_22px_44px_-32px_rgba(11,123,76,0.45)]"
-                        : hasVariants
+                      : hasVariants
                           ? "border-ink/8 bg-cream"
                           : "border-ink/8 bg-cream hover:-translate-y-1 hover:border-indigo/14 hover:shadow-[0_22px_44px_-34px_rgba(34,30,71,0.28)]";
+                    const preferredImageIndex = getPreferredOptionImageIndex(
+                      option,
+                      optionSelection,
+                      optionImageIndexes[option.id],
+                    );
+                    const handleDecorativeRoundCushionCardClick = () => {
+                      focusOptionPreview(currentStep.id, option.id, preferredImageIndex);
+
+                      if (!useDropdownVariantPicker) {
+                        return;
+                      }
+
+                      if (selected) {
+                        setPrimedVariantOptionIds((currentPrimedVariantOptionIds) => ({
+                          ...currentPrimedVariantOptionIds,
+                          [option.id]: true,
+                        }));
+                        return;
+                      }
+
+                      setPrimedVariantOptionIds((currentPrimedVariantOptionIds) => ({
+                        ...currentPrimedVariantOptionIds,
+                        [option.id]: !currentPrimedVariantOptionIds[option.id],
+                      }));
+                      setVariantSelectionErrors((currentVariantSelectionErrors) => ({
+                        ...currentVariantSelectionErrors,
+                        [option.id]: false,
+                      }));
+                    };
 
                     return (
                       <div
                         aria-disabled={optionIsSoldOut || undefined}
-                        aria-pressed={hasVariants || optionIsSoldOut ? undefined : selected}
+                        aria-pressed={
+                          optionIsSoldOut
+                            ? undefined
+                            : useDropdownVariantPicker
+                              ? cardIsHighlighted
+                              : hasVariants
+                                ? undefined
+                                : selected
+                        }
                         className={`group rounded-[1.9rem] border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
                           optionIsSoldOut ? "" : "cursor-pointer"
                         } ${cardClasses}`}
@@ -1837,29 +1879,47 @@ export function GetStartedFlow({
                         onClick={
                           optionIsSoldOut
                             ? undefined
-                            : hasVariants
-                            ? () =>
-                                focusOptionPreview(
-                                  currentStep.id,
-                                  option.id,
-                                  getPreferredOptionImageIndex(
-                                    option,
-                                    optionSelection,
-                                    optionImageIndexes[option.id],
-                                  ),
-                                )
-                            : () => handleSelect(currentStep.id, option)
+                            : useDropdownVariantPicker
+                              ? handleDecorativeRoundCushionCardClick
+                              : hasVariants
+                                ? () =>
+                                    focusOptionPreview(
+                                      currentStep.id,
+                                      option.id,
+                                      preferredImageIndex,
+                                    )
+                                : () => handleSelect(currentStep.id, option)
                         }
                         onKeyDown={
-                          hasVariants || optionIsSoldOut
+                          optionIsSoldOut
                             ? undefined
+                            : useDropdownVariantPicker
+                              ? (event) =>
+                                  handleSelectableCardKeyDown(
+                                    event,
+                                    handleDecorativeRoundCushionCardClick,
+                                  )
+                              : hasVariants
+                                ? undefined
                             : (event) =>
                                 handleSelectableCardKeyDown(event, () =>
                                   handleSelect(currentStep.id, option),
                                 )
                         }
-                        role={hasVariants || optionIsSoldOut ? undefined : "button"}
-                        tabIndex={hasVariants || optionIsSoldOut ? undefined : 0}
+                        role={
+                          optionIsSoldOut
+                            ? undefined
+                            : useDropdownVariantPicker || !hasVariants
+                              ? "button"
+                              : undefined
+                        }
+                        tabIndex={
+                          optionIsSoldOut
+                            ? undefined
+                            : useDropdownVariantPicker || !hasVariants
+                              ? 0
+                              : undefined
+                        }
                       >
                         <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
                           <div className={`relative ${optionImagePresentation.frameClassName}`}>
@@ -1948,107 +2008,286 @@ export function GetStartedFlow({
                           </p>
                           {hasVariants ? (
                             <>
-                              <div className="mt-5 flex items-start justify-between gap-2">
-                                {option.variants?.map((variant) => {
-                                  const variantQuantity =
-                                    optionSelection?.variants?.[variant.id] ?? 0;
-                                  const variantSelected = variantQuantity > 0;
-                                  const variantActive = activeVariant?.id === variant.id;
+                              {useDropdownVariantPicker ? (
+                                <>
+                                  <div className="mt-4">
+                                    <div className="relative">
+                                      <select
+                                        aria-invalid={showVariantSelectionError || undefined}
+                                        className={`w-full appearance-none rounded-[1rem] border bg-white px-4 py-2.5 pr-10 text-sm font-medium shadow-[0_12px_28px_-24px_rgba(34,30,71,0.18)] transition focus-visible:outline-none focus-visible:ring-2 ${
+                                          showVariantSelectionError
+                                            ? "border-rose-400 bg-rose-50/70 text-rose-700 focus-visible:ring-rose-200"
+                                            : cardIsHighlighted
+                                              ? "border-mehendi/28 text-indigo focus-visible:ring-mehendi/18"
+                                              : "border-ink/10 text-indigo focus-visible:ring-indigo/18"
+                                        }`}
+                                        onChange={(event) => {
+                                          event.stopPropagation();
 
-                                  return (
-                                    <button
-                                      aria-label={`Select ${variant.label} for ${option.title}`}
-                                      aria-pressed={variantActive}
-                                      className="pressable flex shrink-0 flex-col items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                                      key={variant.id}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        setActiveVariantIds((currentActiveVariantIds) => ({
-                                          ...currentActiveVariantIds,
-                                          [option.id]: variant.id,
-                                        }));
-                                        focusOptionPreview(
+                                          const nextVariantId = event.target.value;
+
+                                          if (!nextVariantId) {
+                                            if (selected) {
+                                              return;
+                                            }
+
+                                            setActiveVariantIds((currentActiveVariantIds) => {
+                                              const nextActiveVariantIds = {
+                                                ...currentActiveVariantIds,
+                                              };
+
+                                              delete nextActiveVariantIds[option.id];
+
+                                              return nextActiveVariantIds;
+                                            });
+                                            setVariantSelectionErrors(
+                                              (currentVariantSelectionErrors) => ({
+                                                ...currentVariantSelectionErrors,
+                                                [option.id]: false,
+                                              }),
+                                            );
+
+                                            return;
+                                          }
+
+                                          const nextVariant = option.variants?.find(
+                                            (variant) => variant.id === nextVariantId,
+                                          );
+
+                                          if (!nextVariant) {
+                                            return;
+                                          }
+
+                                          setActiveVariantIds((currentActiveVariantIds) => ({
+                                            ...currentActiveVariantIds,
+                                            [option.id]: nextVariant.id,
+                                          }));
+                                          setPrimedVariantOptionIds(
+                                            (currentPrimedVariantOptionIds) => ({
+                                              ...currentPrimedVariantOptionIds,
+                                              [option.id]: true,
+                                            }),
+                                          );
+                                          setVariantSelectionErrors(
+                                            (currentVariantSelectionErrors) => ({
+                                              ...currentVariantSelectionErrors,
+                                              [option.id]: false,
+                                            }),
+                                          );
+                                          focusOptionPreview(
+                                            currentStep.id,
+                                            option.id,
+                                            nextVariant.imageIndex,
+                                          );
+                                        }}
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                        }}
+                                        onKeyDown={(event) => {
+                                          event.stopPropagation();
+                                        }}
+                                        onPointerDown={(event) => {
+                                          event.stopPropagation();
+                                        }}
+                                        value={activeVariant?.id ?? ""}
+                                      >
+                                        <option value="">Select a color</option>
+                                        {option.variants?.map((variant) => (
+                                          <option key={variant.id} value={variant.id}>
+                                            {variant.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <span className="pointer-events-none absolute inset-y-0 right-4 inline-flex items-center text-indigo/58">
+                                        <svg
+                                          aria-hidden="true"
+                                          className="h-4 w-4"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            d="M7 10L12 15L17 10"
+                                            stroke="currentColor"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="1.9"
+                                          />
+                                        </svg>
+                                      </span>
+                                    </div>
+                                    {showVariantSelectionError ? (
+                                      <p className="mt-2 text-[0.72rem] font-medium text-rose-600">
+                                        Choose a color before adjusting quantity.
+                                      </p>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="mt-3 flex items-center justify-between gap-3">
+                                    <QuantityStepper
+                                      decrementLabel={`Decrease ${activeVariant?.label ?? "selected"} quantity for ${option.title}`}
+                                      incrementLabel={`Increase ${activeVariant?.label ?? "selected"} quantity for ${option.title}`}
+                                      onDecrement={() => {
+                                        if (!activeVariant) {
+                                          return;
+                                        }
+
+                                        setVariantSelectionErrors(
+                                          (currentVariantSelectionErrors) => ({
+                                            ...currentVariantSelectionErrors,
+                                            [option.id]: false,
+                                          }),
+                                        );
+                                        updateStepOptionVariantQuantity(
                                           currentStep.id,
-                                          option.id,
-                                          variant.imageIndex,
+                                          option,
+                                          activeVariant.id,
+                                          activeVariant.imageIndex,
+                                          (currentQuantity) => currentQuantity - 1,
                                         );
                                       }}
-                                      type="button"
-                                    >
-                                      <span
-                                        className={`inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_12px_22px_-18px_rgba(34,30,71,0.34)] transition ${
-                                          variantSelected
-                                            ? "border-mehendi bg-paper shadow-[0_0_0_3px_rgba(11,123,76,0.08)]"
-                                            : variantActive
-                                              ? "border-indigo/22 bg-paper shadow-[0_0_0_3px_rgba(34,30,71,0.05)]"
-                                              : "border-ink/8 bg-paper"
-                                        }`}
-                                      >
-                                        <span
-                                          className="h-5 w-5 rounded-full border border-paper/80 shadow-[0_0_0_1px_rgba(34,30,71,0.08)]"
-                                          style={{
-                                            backgroundColor: variant.swatch,
-                                          }}
-                                        />
-                                      </span>
-                                      <span className="mt-1 block min-h-[0.95rem] text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-mehendi">
-                                        {variantSelected ? `x${variantQuantity}` : ""}
-                                      </span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
+                                      onIncrement={() => {
+                                        if (!activeVariant) {
+                                          setPrimedVariantOptionIds(
+                                            (currentPrimedVariantOptionIds) => ({
+                                              ...currentPrimedVariantOptionIds,
+                                              [option.id]: true,
+                                            }),
+                                          );
+                                          setVariantSelectionErrors(
+                                            (currentVariantSelectionErrors) => ({
+                                              ...currentVariantSelectionErrors,
+                                              [option.id]: true,
+                                            }),
+                                          );
+                                          return;
+                                        }
 
-                              <div
-                                className={`mt-4 flex items-center ${
-                                  activeVariant
-                                    ? "justify-between gap-3"
-                                    : "justify-between gap-3"
-                                }`}
-                              >
-                                {activeVariant ? (
-                                  <QuantityStepper
-                                    decrementLabel={`Decrease ${activeVariant.label} quantity for ${option.title}`}
-                                    incrementLabel={`Increase ${activeVariant.label} quantity for ${option.title}`}
-                                    onDecrement={() =>
-                                      updateStepOptionVariantQuantity(
-                                        currentStep.id,
-                                        option,
-                                        activeVariant.id,
-                                        activeVariant.imageIndex,
-                                        (currentQuantity) => currentQuantity - 1,
-                                      )
-                                    }
-                                    onIncrement={() =>
-                                      updateStepOptionVariantQuantity(
-                                        currentStep.id,
-                                        option,
-                                        activeVariant.id,
-                                        activeVariant.imageIndex,
-                                        (currentQuantity) => currentQuantity + 1,
-                                      )
-                                    }
-                                    quantity={activeVariantQuantity}
-                                  />
-                                ) : (
-                                  <div className="flex-1 min-w-0">
-                                    <span className="relative inline-block whitespace-nowrap text-[0.72rem] font-medium uppercase tracking-[0.24em] text-indigo/42">
-                                      <Image
-                                        alt=""
-                                        aria-hidden="true"
-                                        className="pointer-events-none absolute left-[calc(100%-0.2rem)] -top-9 h-auto w-11 select-none opacity-55 mix-blend-multiply"
-                                        src={dottedLineImage}
-                                      />
-                                      Pick a color
+                                        setVariantSelectionErrors(
+                                          (currentVariantSelectionErrors) => ({
+                                            ...currentVariantSelectionErrors,
+                                            [option.id]: false,
+                                          }),
+                                        );
+                                        updateStepOptionVariantQuantity(
+                                          currentStep.id,
+                                          option,
+                                          activeVariant.id,
+                                          activeVariant.imageIndex,
+                                          (currentQuantity) => currentQuantity + 1,
+                                        );
+                                      }}
+                                      quantity={activeVariantQuantity}
+                                    />
+                                    <span className={PRICE_PILL_CLASSES}>
+                                      {formatEventPrice(
+                                        getResolvedOptionPrice(currentStep, option),
+                                      )}
                                     </span>
                                   </div>
-                                )}
-                                <span className={PRICE_PILL_CLASSES}>
-                                  {formatEventPrice(
-                                    getResolvedOptionPrice(currentStep, option),
-                                  )}
-                                </span>
-                              </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="mt-5 flex items-start justify-between gap-2">
+                                    {option.variants?.map((variant) => {
+                                      const variantQuantity =
+                                        optionSelection?.variants?.[variant.id] ?? 0;
+                                      const variantSelected = variantQuantity > 0;
+                                      const variantActive = activeVariant?.id === variant.id;
+
+                                      return (
+                                        <button
+                                          aria-label={`Select ${variant.label} for ${option.title}`}
+                                          aria-pressed={variantActive}
+                                          className="pressable flex shrink-0 flex-col items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                                          key={variant.id}
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setActiveVariantIds(
+                                              (currentActiveVariantIds) => ({
+                                                ...currentActiveVariantIds,
+                                                [option.id]: variant.id,
+                                              }),
+                                            );
+                                            focusOptionPreview(
+                                              currentStep.id,
+                                              option.id,
+                                              variant.imageIndex,
+                                            );
+                                          }}
+                                          type="button"
+                                        >
+                                          <span
+                                            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_12px_22px_-18px_rgba(34,30,71,0.34)] transition ${
+                                              variantSelected
+                                                ? "border-mehendi bg-paper shadow-[0_0_0_3px_rgba(11,123,76,0.08)]"
+                                                : variantActive
+                                                  ? "border-indigo/22 bg-paper shadow-[0_0_0_3px_rgba(34,30,71,0.05)]"
+                                                  : "border-ink/8 bg-paper"
+                                            }`}
+                                          >
+                                            <span
+                                              className="h-5 w-5 rounded-full border border-paper/80 shadow-[0_0_0_1px_rgba(34,30,71,0.08)]"
+                                              style={{
+                                                backgroundColor: variant.swatch,
+                                              }}
+                                            />
+                                          </span>
+                                          <span className="mt-1 block min-h-[0.95rem] text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-mehendi">
+                                            {variantSelected ? `x${variantQuantity}` : ""}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div className="mt-4 flex items-center justify-between gap-3">
+                                    {activeVariant ? (
+                                      <QuantityStepper
+                                        decrementLabel={`Decrease ${activeVariant.label} quantity for ${option.title}`}
+                                        incrementLabel={`Increase ${activeVariant.label} quantity for ${option.title}`}
+                                        onDecrement={() =>
+                                          updateStepOptionVariantQuantity(
+                                            currentStep.id,
+                                            option,
+                                            activeVariant.id,
+                                            activeVariant.imageIndex,
+                                            (currentQuantity) =>
+                                              currentQuantity - 1,
+                                          )
+                                        }
+                                        onIncrement={() =>
+                                          updateStepOptionVariantQuantity(
+                                            currentStep.id,
+                                            option,
+                                            activeVariant.id,
+                                            activeVariant.imageIndex,
+                                            (currentQuantity) =>
+                                              currentQuantity + 1,
+                                          )
+                                        }
+                                        quantity={activeVariantQuantity}
+                                      />
+                                    ) : (
+                                      <div className="min-w-0 flex-1">
+                                        <span className="relative inline-block whitespace-nowrap text-[0.72rem] font-medium uppercase tracking-[0.24em] text-indigo/42">
+                                          <Image
+                                            alt=""
+                                            aria-hidden="true"
+                                            className="pointer-events-none absolute left-[calc(100%-0.2rem)] -top-9 h-auto w-11 select-none opacity-55 mix-blend-multiply"
+                                            src={dottedLineImage}
+                                          />
+                                          Pick a color
+                                        </span>
+                                      </div>
+                                    )}
+                                    <span className={PRICE_PILL_CLASSES}>
+                                      {formatEventPrice(
+                                        getResolvedOptionPrice(currentStep, option),
+                                      )}
+                                    </span>
+                                  </div>
+                                </>
+                              )}
                             </>
                           ) : (
                             <div
