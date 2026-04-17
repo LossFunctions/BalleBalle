@@ -1509,7 +1509,7 @@ export function GetStartedFlow({
                                           {chip.swatch ? (
                                             <span
                                               className="h-2 w-2 rounded-full border border-paper/80 shadow-[0_0_0_1px_rgba(34,30,71,0.08)]"
-                                              style={{ backgroundColor: chip.swatch }}
+                                              style={{ background: chip.swatch }}
                                             />
                                           ) : null}
                                           {chip.label}
@@ -2011,6 +2011,20 @@ export function GetStartedFlow({
                               {useDropdownVariantPicker ? (
                                 <>
                                   <div className="mt-4">
+                                    {option.variantLabel || option.variantHint ? (
+                                      <div className="mb-3 space-y-1">
+                                        {option.variantLabel ? (
+                                          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-indigo/48">
+                                            {option.variantLabel}
+                                          </p>
+                                        ) : null}
+                                        {option.variantHint ? (
+                                          <p className="text-sm leading-5 text-indigo/58">
+                                            {option.variantHint}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    ) : null}
                                     <div className="relative">
                                       <select
                                         aria-invalid={showVariantSelectionError || undefined}
@@ -2187,7 +2201,21 @@ export function GetStartedFlow({
                                 </>
                               ) : (
                                 <>
-                                  <div className="mt-5 flex items-start justify-between gap-2">
+                                  {option.variantLabel || option.variantHint ? (
+                                    <div className="mt-4 space-y-1">
+                                      {option.variantLabel ? (
+                                        <p className="text-[0.68rem] uppercase tracking-[0.18em] text-indigo/48">
+                                          {option.variantLabel}
+                                        </p>
+                                      ) : null}
+                                      {option.variantHint ? (
+                                        <p className="text-sm leading-5 text-indigo/58">
+                                          {option.variantHint}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-4 flex items-start justify-between gap-2">
                                     {option.variants?.map((variant) => {
                                       const variantQuantity =
                                         optionSelection?.variants?.[variant.id] ?? 0;
@@ -2228,7 +2256,7 @@ export function GetStartedFlow({
                                             <span
                                               className="h-5 w-5 rounded-full border border-paper/80 shadow-[0_0_0_1px_rgba(34,30,71,0.08)]"
                                               style={{
-                                                backgroundColor: variant.swatch,
+                                                background: variant.swatch,
                                               }}
                                             />
                                           </span>

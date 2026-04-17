@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build --webpack",
+    "prepare:product-pictures": "node ./scripts/sync-product-pictures.mjs",
+    "dev": "npm run prepare:product-pictures && next dev",
+    "build": "npm run prepare:product-pictures && next build --webpack",
     "start": "next start",
     "preview": "./scripts/preview.sh",
     "lint": "eslint"
