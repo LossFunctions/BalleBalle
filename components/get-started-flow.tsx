@@ -48,7 +48,6 @@ type FlowSnapshot = {
 
 const FLOW_SCROLL_OFFSET = 112;
 const SIDEBAR_ADDED_STATUS = "Added";
-const DECORATIVE_ROUND_CUSHION_OPTION_ID = "full-cushion-set";
 const EVENT_PRICING_POLICY =
   "Each event rate covers a 4-day rental window total, including pickup or delivery and return by day 4.";
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -60,11 +59,15 @@ const PRICE_PILL_CLASSES =
   "inline-flex rounded-full border border-indigo/10 bg-paper px-3 py-1 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/58";
 const OPTION_IMAGE_MOTION_CLASSES =
   "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]";
+const OPTION_IMAGE_FRAME_ASPECT_CLASSES = {
+  landscape: "aspect-[4/3]",
+  portrait: "aspect-[4/5]",
+} as const;
 const OPTION_IMAGE_FRAME_TONE_CLASSES = {
-  soft: "aspect-[4/3] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,241,234,0.96)_62%,rgba(237,231,223,0.94))]",
+  soft: "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,241,234,0.96)_62%,rgba(237,231,223,0.94))]",
   light:
-    "aspect-[4/3] bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(247,244,239,0.96))]",
-  dark: "aspect-[4/3] bg-[radial-gradient(circle_at_top,rgba(111,88,71,0.48),rgba(58,43,34,0.96)_60%,rgba(24,18,16,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+    "bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(247,244,239,0.96))]",
+  dark: "bg-[radial-gradient(circle_at_top,rgba(111,88,71,0.48),rgba(58,43,34,0.96)_60%,rgba(24,18,16,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
 } as const;
 const OPTION_IMAGE_PREVIEW_STAGE_CLASSES = {
   soft: "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(245,241,234,0.96)_62%,rgba(237,231,223,0.94))]",
@@ -75,6 +78,7 @@ const OPTION_IMAGE_PREVIEW_STAGE_CLASSES = {
 const SELECTED_PREVIEW_ZOOM_SCALE = 1.72;
 
 type OptionImageFrameTone = keyof typeof OPTION_IMAGE_FRAME_TONE_CLASSES;
+type OptionImageFrameAspect = keyof typeof OPTION_IMAGE_FRAME_ASPECT_CLASSES;
 type OptionImageSubjectStyle = "default" | "cutout";
 type PreviewZoomState = {
   active: boolean;
@@ -125,6 +129,7 @@ type OptionMediaProps = {
   sizes?: string;
   style?: CSSProperties;
   decorative?: boolean;
+  nonInteractive?: boolean;
   withControls?: boolean;
 };
 
@@ -210,15 +215,18 @@ function OptionMedia({
   sizes,
   style,
   decorative = false,
+  nonInteractive = decorative,
   withControls = false,
 }: OptionMediaProps) {
+  const interactionClassName = nonInteractive ? " pointer-events-none select-none" : "";
+
   if (isVideoAsset(asset)) {
     return (
       <video
         aria-hidden={decorative || undefined}
         aria-label={decorative ? undefined : asset.alt}
         autoPlay
-        className={`absolute inset-0 h-full w-full ${className}`}
+        className={`absolute inset-0 h-full w-full${interactionClassName} ${className}`}
         controls={withControls}
         loop
         muted
@@ -237,7 +245,7 @@ function OptionMedia({
     <Image
       alt={decorative ? "" : asset.alt}
       aria-hidden={decorative || undefined}
-      className={className}
+      className={`${nonInteractive ? "pointer-events-none select-none " : ""}${className}`}
       fill
       sizes={sizes}
       src={asset.src}
@@ -343,6 +351,7 @@ const getOptionImagePresentation = (
   const fit = image.presentation?.fit ?? getDefaultOptionImageFit(image);
   const frameTone =
     image.presentation?.frameTone ?? getDefaultOptionFrameTone(image);
+  const frameAspect = image.presentation?.frameAspect ?? "landscape";
   const subjectStyle =
     image.presentation?.subjectStyle ?? getDefaultOptionSubjectStyle(image);
   const usesContain = fit === "contain";
@@ -393,7 +402,10 @@ const getOptionImagePresentation = (
   return {
     frameTone,
     subjectStyle,
-    frameClassName: OPTION_IMAGE_FRAME_TONE_CLASSES[frameTone],
+    frameClassName: [
+      OPTION_IMAGE_FRAME_ASPECT_CLASSES[frameAspect as OptionImageFrameAspect],
+      OPTION_IMAGE_FRAME_TONE_CLASSES[frameTone],
+    ].join(" "),
     imageClassName,
     imageStyle: {
       ...(image.presentation?.objectPosition
@@ -1648,7 +1660,7 @@ export function GetStartedFlow({
 	                      >
 	                        <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
 	                          <div
-	                            className={`relative aspect-[5/4] ${addOnImagePresentation.previewStageClassName}`}
+	                            className={`relative aspect-[5/4] overflow-hidden rounded-[1.5rem] ${addOnImagePresentation.previewStageClassName}`}
 	                          >
 	                            {addOnImagePresentation.showBackdropImage ? (
 	                              <>
@@ -1779,10 +1791,7 @@ export function GetStartedFlow({
                     const hasVariants = Boolean(option.variants?.length);
                     const quantity = getOptionSelectionQuantity(optionSelection);
                     const selected = quantity > 0;
-                    const isDecorativeRoundCushion =
-                      option.id === DECORATIVE_ROUND_CUSHION_OPTION_ID;
-                    const useDropdownVariantPicker =
-                      hasVariants && isDecorativeRoundCushion;
+                    const useDropdownVariantPicker = hasVariants;
                     const variantCardPrimed = Boolean(primedVariantOptionIds[option.id]);
                     const optionIsSoldOut = isDholOptionGloballyUnavailable(
                       currentStep,
@@ -1835,7 +1844,7 @@ export function GetStartedFlow({
                       optionSelection,
                       optionImageIndexes[option.id],
                     );
-                    const handleDecorativeRoundCushionCardClick = () => {
+                    const handleDropdownVariantCardClick = () => {
                       focusOptionPreview(currentStep.id, option.id, preferredImageIndex);
 
                       if (!useDropdownVariantPicker) {
@@ -1880,7 +1889,7 @@ export function GetStartedFlow({
                           optionIsSoldOut
                             ? undefined
                             : useDropdownVariantPicker
-                              ? handleDecorativeRoundCushionCardClick
+                              ? handleDropdownVariantCardClick
                               : hasVariants
                                 ? () =>
                                     focusOptionPreview(
@@ -1897,7 +1906,7 @@ export function GetStartedFlow({
                               ? (event) =>
                                   handleSelectableCardKeyDown(
                                     event,
-                                    handleDecorativeRoundCushionCardClick,
+                                    handleDropdownVariantCardClick,
                                   )
                               : hasVariants
                                 ? undefined
@@ -1922,7 +1931,11 @@ export function GetStartedFlow({
                         }
                       >
                         <div className="relative overflow-hidden rounded-[1.5rem] border border-ink/8 bg-white">
-                          <div className={`relative ${optionImagePresentation.frameClassName}`}>
+                          <div
+                            className={`relative z-0 overflow-hidden ${
+                              showInlineGallery ? "rounded-t-[1.5rem]" : "rounded-[1.5rem]"
+                            } ${optionImagePresentation.frameClassName}`}
+                          >
                             {optionImagePresentation.showBackdropImage ? (
                               <>
                                 <OptionMedia
@@ -1957,17 +1970,12 @@ export function GetStartedFlow({
                               Sold out
                             </span>
                           ) : null}
-                          {isVideoAsset(activeImage) ? (
-                            <span className="absolute right-4 top-4 rounded-full border border-paper/48 bg-paper/84 px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-indigo/56 backdrop-blur">
-                              Video
-                            </span>
-                          ) : null}
                           {showInlineGallery ? (
-                            <div className="border-t border-indigo/8 bg-[linear-gradient(180deg,rgba(249,248,244,0.9),rgba(255,255,255,0.96))] px-3 py-2">
+                            <div className="relative z-10 border-t border-indigo/8 bg-[linear-gradient(180deg,rgba(249,248,244,0.9),rgba(255,255,255,0.96))] px-3 py-2">
                               <div className="flex items-center justify-between gap-3">
                                 <button
                                   aria-label={`Show previous image for ${option.title}`}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo/10 bg-paper text-lg leading-none text-indigo shadow-[0_14px_30px_-20px_rgba(34,30,71,0.32)] transition hover:bg-cream"
+                                  className="relative z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo/10 bg-paper text-lg leading-none text-indigo shadow-[0_14px_30px_-20px_rgba(34,30,71,0.32)] transition hover:bg-cream"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     cycleOptionImage(option.id, optionImages.length, -1);
@@ -1982,7 +1990,7 @@ export function GetStartedFlow({
                                 <div className="h-px flex-1 bg-indigo/8" />
                                 <button
                                   aria-label={`Show next image for ${option.title}`}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo/10 bg-paper text-lg leading-none text-indigo shadow-[0_14px_30px_-20px_rgba(34,30,71,0.32)] transition hover:bg-cream"
+                                  className="relative z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo/10 bg-paper text-lg leading-none text-indigo shadow-[0_14px_30px_-20px_rgba(34,30,71,0.32)] transition hover:bg-cream"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     cycleOptionImage(option.id, optionImages.length, 1);
@@ -2011,20 +2019,6 @@ export function GetStartedFlow({
                               {useDropdownVariantPicker ? (
                                 <>
                                   <div className="mt-4">
-                                    {option.variantLabel || option.variantHint ? (
-                                      <div className="mb-3 space-y-1">
-                                        {option.variantLabel ? (
-                                          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-indigo/48">
-                                            {option.variantLabel}
-                                          </p>
-                                        ) : null}
-                                        {option.variantHint ? (
-                                          <p className="text-sm leading-5 text-indigo/58">
-                                            {option.variantHint}
-                                          </p>
-                                        ) : null}
-                                      </div>
-                                    ) : null}
                                     <div className="relative">
                                       <select
                                         aria-invalid={showVariantSelectionError || undefined}

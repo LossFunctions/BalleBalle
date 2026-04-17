@@ -26,6 +26,7 @@ type MediaAsset = {
   presentation?: {
     fit?: "contain" | "cover";
     frameTone?: "soft" | "light" | "dark";
+    frameAspect?: "landscape" | "portrait";
     subjectStyle?: "default" | "cutout";
     objectPosition?: string;
     scale?: number;
@@ -290,6 +291,7 @@ type ProductPictureOptionConfig = {
   selectionSummary: string;
   pricePerDay?: number;
   previewFileName?: string;
+  presentation?: MediaAsset["presentation"];
   variantLabel?: string;
   variantHint?: string;
   variants?: CustomizeOptionVariant[];
@@ -303,6 +305,7 @@ type ProductPictureAddOnConfig = {
   selectionSummary: string;
   pricePerDay: number;
   previewFileName?: string;
+  presentation?: MediaAsset["presentation"];
 };
 
 const PRODUCT_PICTURE_IMAGE_WIDTH = 1600;
@@ -480,7 +483,12 @@ const createProductPictureMediaAsset = (
   index: number,
   total: number,
   posterSrc?: string,
+  presentationOverride?: MediaAsset["presentation"],
 ): MediaAsset => {
+  const mergedPresentation = {
+    ...createProductPicturePresentation(asset),
+    ...presentationOverride,
+  };
   const mediaAsset: MediaAsset = {
     src: asset.src,
     alt: createProductPictureAlt(title, asset, index, total),
@@ -492,7 +500,7 @@ const createProductPictureMediaAsset = (
       asset.kind === "video"
         ? PRODUCT_PICTURE_VIDEO_HEIGHT
         : PRODUCT_PICTURE_IMAGE_HEIGHT,
-    presentation: createProductPicturePresentation(asset),
+    presentation: mergedPresentation,
   };
 
   if (asset.kind === "video") {
@@ -506,7 +514,12 @@ const createProductPictureMediaAsset = (
   return mediaAsset;
 };
 
-const createFolderGallery = (title: string, folder: string, previewFileName?: string) => {
+const createFolderGallery = (
+  title: string,
+  folder: string,
+  previewFileName?: string,
+  presentation?: MediaAsset["presentation"],
+) => {
   const orderedAssets = getOrderedProductPictureFolderAssets(folder, previewFileName);
   const posterSrc = orderedAssets.find((asset) => asset.kind === "image")?.src;
 
@@ -517,6 +530,7 @@ const createFolderGallery = (title: string, folder: string, previewFileName?: st
       index,
       orderedAssets.length,
       posterSrc,
+      presentation,
     ),
   );
 };
@@ -524,9 +538,15 @@ const createFolderGallery = (title: string, folder: string, previewFileName?: st
 const createFolderOption = ({
   folder,
   previewFileName,
+  presentation,
   ...config
 }: ProductPictureOptionConfig): CustomizeOption => {
-  const gallery = createFolderGallery(config.title, folder, previewFileName);
+  const gallery = createFolderGallery(
+    config.title,
+    folder,
+    previewFileName,
+    presentation,
+  );
 
   return {
     ...config,
@@ -538,10 +558,11 @@ const createFolderOption = ({
 const createFolderAddOn = ({
   folder,
   previewFileName,
+  presentation,
   ...config
 }: ProductPictureAddOnConfig): AddOnOption => ({
   ...config,
-  image: createFolderGallery(config.title, folder, previewFileName)[0],
+  image: createFolderGallery(config.title, folder, previewFileName, presentation)[0],
 });
 
 const extractGarlandLengthLabel = (folder: string) => {
@@ -595,30 +616,45 @@ const garlandFolders = [
     id: "garland-1",
     title: "Garland 1",
     previewFileName: "Garldands1A4ft_final.png",
+    presentation: {
+      frameAspect: "portrait",
+    },
   },
   {
     folder: "Garlands/Garlands2",
     id: "garland-2",
     title: "Garland 2",
     previewFileName: "Garlands2A5ft.png",
+    presentation: {
+      frameAspect: "portrait",
+    },
   },
   {
     folder: "Garlands/Garlands3",
     id: "garland-3",
     title: "Garland 3",
     previewFileName: "Garlands3A8ft-ezremove.png",
+    presentation: {
+      frameAspect: "portrait",
+    },
   },
   {
     folder: "Garlands/Garland4",
     id: "garland-4",
     title: "Garland 4",
     previewFileName: "Garland4A3ft.webp",
+    presentation: {
+      frameAspect: "portrait",
+    },
   },
   {
     folder: "Garlands/Garland5",
     id: "garland-5",
     title: "Garland 5",
     previewFileName: "Garland5_4.5ft.avif",
+    presentation: {
+      frameAspect: "portrait",
+    },
   },
 ] as const;
 
@@ -692,7 +728,8 @@ export const customizeSteps: CustomizeStep[] = [
     title: "Garlands",
     skippedSummary: "You are leaving the backdrop without floral garlands.",
     pricePerDay: 10,
-    options: garlandFolders.map(({ folder, id, title, previewFileName }) =>
+    options: garlandFolders.map(
+      ({ folder, id, title, previewFileName, presentation }) =>
       createFolderOption({
         id,
         folder,
@@ -700,6 +737,7 @@ export const customizeSteps: CustomizeStep[] = [
         subtitle: extractGarlandLengthLabel(folder),
         selectionSummary: `You are selecting ${title.toLowerCase()} for the floral backdrop layer.`,
         previewFileName,
+        presentation,
       }),
     ),
   },
