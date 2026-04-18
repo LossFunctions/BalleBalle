@@ -440,21 +440,37 @@ const cloneSelectionMap = (selectionMap: SelectionMap): SelectionMap =>
     ]),
   );
 
-const createStandardPresetSelections = (): SelectionMap =>
-  customizeSteps.reduce<SelectionMap>((accumulator, step) => {
-    const randomOption =
-      step.options[Math.floor(Math.random() * step.options.length)];
-
-    accumulator[step.id] = randomOption
-      ? {
-          [randomOption.id]: randomOption.variants?.[0]
-            ? { variants: { [randomOption.variants[0].id]: 1 } }
-            : { quantity: 1 },
-        }
-      : null;
-
-    return accumulator;
-  }, {});
+const createStandardPresetSelections = (): SelectionMap => ({
+  ...createInitialSelections(),
+  dhol: {
+    "mirror-festival": { quantity: 2 },
+  },
+  backdrop: {
+    "backdrop-style-1": { quantity: 1 },
+  },
+  garlands: {
+    "garland-2": { variants: { "light-pink": 10 } },
+  },
+  curtains: {
+    "curtain-set": { variants: { champagne: 1 } },
+  },
+  bench: {
+    "tufted-bench": { quantity: 1 },
+  },
+  "bench-cloth": {
+    "embroidered-bench-cloth": { quantity: 1 },
+  },
+  "floor-cushions": {
+    "six-cushions": { quantity: 2 },
+    "full-cushion-set": {
+      variants: {
+        orange: 2,
+        pink: 2,
+        blue: 2,
+      },
+    },
+  },
+});
 
 const createFlowSnapshot = (mode: PathMode): FlowSnapshot => {
   const draftSelections =
@@ -1276,6 +1292,19 @@ export function GetStartedFlow({
     );
   };
 
+  const addOnSummaryGroups = selectedAddOns.map((option) => {
+    const quantity = addOnSelections[option.id] ?? 0;
+
+    return {
+      title: option.title,
+      summary: option.selectionSummary,
+      quantityLabel: quantity > 1 ? `×${quantity}` : "Selected",
+      priceLine: `${quantity} selected • ${formatEventPrice(
+        option.pricePerDay * quantity,
+      )}`,
+    };
+  });
+
   const handleAddOnsCardClick = () => {
     jumpToAddOns();
   };
@@ -1734,19 +1763,41 @@ export function GetStartedFlow({
                   <p className="text-[0.72rem] uppercase tracking-[0.24em] text-indigo/48">
                     Extras summary
                   </p>
-                  <p className="mt-3 text-sm leading-7 text-ink/72">
-                    {selectedAddOnsCount > 0
-                      ? selectedAddOns
-                          .map((option) => {
-                            const quantity = addOnSelections[option.id] ?? 0;
-                            const quantitySuffix =
-                              quantity > 1 ? ` (×${quantity})` : "";
-
-                            return `${option.selectionSummary}${quantitySuffix}`;
-                          })
-                          .join(" ")
-                      : "No extras selected yet. Leave this section empty if you only want the core setup."}
-                  </p>
+                  {selectedAddOnsCount > 0 ? (
+                    <>
+                      <div className="mt-3 space-y-2.5">
+                        {addOnSummaryGroups.map((group) => (
+                          <div
+                            className="rounded-[1.1rem] border border-indigo/10 bg-paper px-3 py-2.5"
+                            key={`addon-summary-${group.title}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-[0.86rem] font-medium leading-5 text-indigo/84">
+                                {group.title}
+                              </p>
+                              <span className="shrink-0 rounded-full border border-indigo/10 bg-cream px-2 py-1 text-[0.58rem] font-medium uppercase tracking-[0.18em] text-indigo/52">
+                                {group.quantityLabel}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-ink/70">
+                              {group.summary}
+                            </p>
+                            <p className="mt-2 text-[0.68rem] uppercase tracking-[0.18em] text-indigo/48">
+                              {group.priceLine}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-4 text-[0.72rem] uppercase tracking-[0.18em] text-indigo/48">
+                        {selectedAddOnsCount} selected • {formatEventPrice(addOnsSubtotal)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-3 text-sm leading-7 text-ink/72">
+                      No extras selected yet. Leave this section empty if you only
+                      want the core setup.
+                    </p>
+                  )}
                 </div>
               </section>
             ) : (
@@ -2066,10 +2117,6 @@ export function GetStartedFlow({
                                             return;
                                           }
 
-                                          setActiveVariantIds((currentActiveVariantIds) => ({
-                                            ...currentActiveVariantIds,
-                                            [option.id]: nextVariant.id,
-                                          }));
                                           setPrimedVariantOptionIds(
                                             (currentPrimedVariantOptionIds) => ({
                                               ...currentPrimedVariantOptionIds,
@@ -2082,10 +2129,13 @@ export function GetStartedFlow({
                                               [option.id]: false,
                                             }),
                                           );
-                                          focusOptionPreview(
+                                          updateStepOptionVariantQuantity(
                                             currentStep.id,
-                                            option.id,
+                                            option,
+                                            nextVariant.id,
                                             nextVariant.imageIndex,
+                                            (currentQuantity) =>
+                                              currentQuantity > 0 ? currentQuantity : 1,
                                           );
                                         }}
                                         onClick={(event) => {

@@ -72,8 +72,8 @@ export function Homepage() {
         </section>
 
         <Reveal
-          className="mx-auto mt-14 max-w-7xl px-4 sm:px-6 lg:px-8"
-          delay={120}
+          className="reveal-trust-badges mx-auto mt-14 max-w-7xl px-4 sm:px-6 lg:px-8"
+          delay={80}
         >
           <section
             aria-label="Trust markers"

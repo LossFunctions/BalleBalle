@@ -375,6 +375,22 @@ const CURTAIN_COLOR_VARIANT_META: Record<
     label: "Pink",
     swatch: "linear-gradient(135deg, #c96593 0%, #efb4cf 100%)",
   },
+  DarkPink: {
+    label: "Dark pink",
+    swatch: "linear-gradient(135deg, #9f3f72 0%, #cf6d9b 50%, #f0b7d0 100%)",
+  },
+  Orange: {
+    label: "Orange",
+    swatch: "linear-gradient(135deg, #db7a27 0%, #f1a94f 48%, #ffd08a 100%)",
+  },
+  Mango: {
+    label: "Mango",
+    swatch: "linear-gradient(135deg, #d9811f 0%, #f3b24e 48%, #ffd77a 100%)",
+  },
+  Teal: {
+    label: "Teal",
+    swatch: "linear-gradient(135deg, #1f7b78 0%, #47a8a0 52%, #8dd7cf 100%)",
+  },
   Purple: {
     label: "Purple",
     swatch: "linear-gradient(135deg, #6f569c 0%, #b79dd5 100%)",
@@ -596,6 +612,22 @@ const getCurtainVariantMeta = (fileName: string) => {
   );
 };
 
+const getColorVariantMeta = (label: string) => {
+  const normalizedLabel = label.replace(/[^a-z0-9]+/gi, "").toLowerCase();
+  const matchingEntry = Object.entries(CURTAIN_COLOR_VARIANT_META).find(
+    ([key, meta]) =>
+      key.replace(/[^a-z0-9]+/gi, "").toLowerCase() === normalizedLabel ||
+      meta.label.replace(/[^a-z0-9]+/gi, "").toLowerCase() === normalizedLabel,
+  );
+
+  return (
+    matchingEntry?.[1] ?? {
+      label,
+      swatch: "linear-gradient(135deg, #bca57f 0%, #efe5d7 100%)",
+    }
+  );
+};
+
 const curtainVariants = getOrderedProductPictureFolderAssets(
   "Curtains/Curtains1",
   "Curtain1ABeige_5x10ft.avif",
@@ -610,7 +642,54 @@ const curtainVariants = getOrderedProductPictureFolderAssets(
   };
 });
 
-const garlandFolders = [
+const createExplicitColorVariants = ({
+  colorLabels,
+  folder,
+  previewFileName,
+}: {
+  colorLabels: readonly string[];
+  folder: string;
+  previewFileName?: string;
+}) => {
+  const imageIndexes = getOrderedProductPictureFolderAssets(folder, previewFileName)
+    .flatMap((asset, imageIndex) => (asset.kind === "image" ? [imageIndex] : []));
+  const fallbackImageIndexes = imageIndexes.length > 0 ? imageIndexes : [0];
+  const seenVariantIds = new Set<string>();
+
+  return colorLabels.flatMap((label, colorIndex) => {
+    const variantMeta = getColorVariantMeta(label);
+    const variantId = toKebabCase(variantMeta.label);
+
+    if (seenVariantIds.has(variantId)) {
+      return [];
+    }
+
+    seenVariantIds.add(variantId);
+
+    return [
+      {
+        id: variantId,
+        label: variantMeta.label,
+        swatch: variantMeta.swatch,
+        imageIndex:
+          fallbackImageIndexes[colorIndex % fallbackImageIndexes.length],
+      },
+    ];
+  });
+};
+
+type GarlandFolderConfig = {
+  colors?: readonly string[];
+  folder: string;
+  id: string;
+  presentation: {
+    frameAspect: "portrait";
+  };
+  previewFileName: string;
+  title: string;
+};
+
+const garlandFolders: readonly GarlandFolderConfig[] = [
   {
     folder: "Garlands/Garlands1",
     id: "garland-1",
@@ -628,6 +707,15 @@ const garlandFolders = [
     presentation: {
       frameAspect: "portrait",
     },
+    colors: [
+      "Light pink",
+      "Red",
+      "Green",
+      "Dark pink",
+      "Yellow",
+      "Orange",
+      "Yellow",
+    ],
   },
   {
     folder: "Garlands/Garlands3",
@@ -637,6 +725,15 @@ const garlandFolders = [
     presentation: {
       frameAspect: "portrait",
     },
+    colors: [
+      "Light blue",
+      "Green",
+      "Red",
+      "Yellow",
+      "Pink",
+      "Orange",
+      "Teal",
+    ],
   },
   {
     folder: "Garlands/Garland4",
@@ -646,6 +743,7 @@ const garlandFolders = [
     presentation: {
       frameAspect: "portrait",
     },
+    colors: ["Green", "Yellow", "Pink", "Orange", "Red"],
   },
   {
     folder: "Garlands/Garland5",
@@ -655,8 +753,9 @@ const garlandFolders = [
     presentation: {
       frameAspect: "portrait",
     },
+    colors: ["Yellow", "Orange", "Mango"],
   },
-] as const;
+];
 
 export const customizeSteps: CustomizeStep[] = [
   {
@@ -706,19 +805,19 @@ export const customizeSteps: CustomizeStep[] = [
       createFolderOption({
         id: "backdrop-style-1",
         folder: "Backdrop/Backdrop1",
-        title: "Backdrop style 1",
-        subtitle: "Primary backdrop option",
+        title: "Black backdrop (10ft x 10ft)",
+        subtitle: "Black easy assemble",
         selectionSummary:
-          "You are selecting the first real backdrop option from the Product Pictures source folder.",
+          "You are selecting the black easy-assemble backdrop for a clean 10ft x 10ft framing layer.",
         previewFileName: "Backdrop1A-Photoroom.png",
       }),
       createFolderOption({
         id: "backdrop-style-2",
         folder: "Backdrop/Backdrop2",
-        title: "Backdrop style 2",
-        subtitle: "Alternate backdrop option",
+        title: "Silver backdrop (10ft x 10ft)",
+        subtitle: "Silver easy assemble",
         selectionSummary:
-          "You are selecting the second real backdrop option from the Product Pictures source folder.",
+          "You are selecting the silver easy-assemble backdrop for a bright 10ft x 10ft framing layer.",
         previewFileName: "Backdrop2A-Photoroom.png",
       }),
     ],
@@ -727,9 +826,9 @@ export const customizeSteps: CustomizeStep[] = [
     id: "garlands",
     title: "Garlands",
     skippedSummary: "You are leaving the backdrop without floral garlands.",
-    pricePerDay: 10,
+    pricePerDay: 2,
     options: garlandFolders.map(
-      ({ folder, id, title, previewFileName, presentation }) =>
+      ({ colors, folder, id, title, previewFileName, presentation }) =>
       createFolderOption({
         id,
         folder,
@@ -738,6 +837,17 @@ export const customizeSteps: CustomizeStep[] = [
         selectionSummary: `You are selecting ${title.toLowerCase()} for the floral backdrop layer.`,
         previewFileName,
         presentation,
+        ...(colors?.length
+          ? {
+              variantLabel: "Color",
+              variantHint: "Choose a garland color, then add the quantity you need.",
+              variants: createExplicitColorVariants({
+                colorLabels: colors,
+                folder,
+                previewFileName,
+              }),
+            }
+          : {}),
       }),
     ),
   },
