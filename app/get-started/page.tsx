@@ -17,8 +17,31 @@ type GetStartedPageProps = {
 
 export const runtime = "nodejs";
 
+const LIVE_DHOL_CATALOG_TIMEOUT_MS = 1200;
+
 const getSingleValue = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value;
+
+const withTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage: string,
+) => {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+};
 
 export default async function GetStartedPage({
   searchParams,
@@ -30,7 +53,11 @@ export default async function GetStartedPage({
   let liveDholCatalog = dholCatalog;
 
   try {
-    const loadedDholCatalog = await listDholProducts();
+    const loadedDholCatalog = await withTimeout(
+      listDholProducts(),
+      LIVE_DHOL_CATALOG_TIMEOUT_MS,
+      "Timed out loading live dhol catalog for the builder.",
+    );
 
     if (loadedDholCatalog.length > 0) {
       liveDholCatalog = loadedDholCatalog;

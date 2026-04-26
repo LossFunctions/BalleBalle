@@ -46,6 +46,7 @@ export function Homepage() {
                   <Link
                     className="pressable inline-flex items-center justify-center rounded-full bg-marigold px-8 py-4 text-base font-semibold text-ink shadow-[0_22px_45px_-22px_rgba(17,17,17,0.42)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_52px_-22px_rgba(17,17,17,0.48)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
                     href="/get-started"
+                    prefetch
                   >
                     Get Started
                   </Link>

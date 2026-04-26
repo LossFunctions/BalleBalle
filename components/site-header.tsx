@@ -26,6 +26,7 @@ export function SiteHeader() {
               key={item.href}
               className="transition hover:text-indigo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
               href={item.href}
+              prefetch={item.href === "/get-started" ? true : undefined}
             >
               {item.label}
             </Link>
