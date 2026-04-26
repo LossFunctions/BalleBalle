@@ -239,10 +239,7 @@ export function DholCheckoutForm({
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
       <section className="rounded-[2.4rem] border border-ink/10 bg-paper/95 p-6 shadow-[0_30px_90px_-55px_rgba(34,30,71,0.4)] sm:p-8">
         <div className="max-w-3xl">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-indigo/48">
-            Dhol Checkout Pilot
-          </p>
-          <h1 className="mt-3 font-display text-[clamp(2.6rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-indigo">
+          <h1 className="font-display text-[clamp(2.6rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-indigo">
             Secure checkout for selected dhol rentals.
           </h1>
           <p className="mt-4 text-sm leading-7 text-ink/72 sm:text-base">
@@ -296,10 +293,12 @@ export function DholCheckoutForm({
                 );
               })}
             </div>
-            <p className="mt-3 text-sm leading-6 text-ink/64">
-              Pickup is free. Delivery within NYC and Long Island adds{" "}
-              {currencyFormatter.format(200)}.
-            </p>
+            {isDelivery ? (
+              <p className="mt-3 text-sm leading-6 text-ink/64">
+                Delivery within NYC and Long Island adds{" "}
+                {currencyFormatter.format(200)}.
+              </p>
+            ) : null}
           </fieldset>
 
           <div className="grid gap-4 sm:grid-cols-2">

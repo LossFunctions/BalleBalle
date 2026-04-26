@@ -58,7 +58,7 @@ export default async function CheckoutPage({
     } catch (error) {
       console.error("Unable to load live dhol catalog for checkout.", error);
       checkoutUnavailableReason =
-        "Live checkout inventory is not configured on this deployment yet. Add the Supabase environment variables to your hosting provider and redeploy.";
+        "Live checkout inventory is unavailable right now. Check that the Supabase project is active and reachable, then try again.";
     }
   }
 
